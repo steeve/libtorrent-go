@@ -13,6 +13,7 @@ namespace libtorrent {
 
 
 %include "libtorrent/config.hpp"
+%include "libtorrent/version.hpp"
 %include "libtorrent/build_config.hpp"
 
 %include "error_code.i"
@@ -23,6 +24,8 @@ namespace libtorrent {
 
 %include "add_torrent_params.i"
 
+%include "alert.i"
+%include "alert_types.i"
 %include "session_settings.i"
 %include "session.i"
 %include "magnet_uri.i"
