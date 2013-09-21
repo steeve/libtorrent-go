@@ -42,7 +42,7 @@ swig:
 	swig -go -intgosize 64 -c++ -soname $(DYLIB_NAME) $(SWIG_FLAGS) -I/usr/local/include libtorrent.i
 
 dylib: $(OBJS)
-	$(CXX) $(LDFLAGS) $(OBJS) -o $(DYLIB_NAME)
+	$(CXX) -o $(DYLIB_NAME) $(OBJS) $(LDFLAGS)
 
 $(SRCS): swig
 
