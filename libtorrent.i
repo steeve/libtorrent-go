@@ -9,8 +9,9 @@ namespace libtorrent {
 
 #define BOOST_POSIX_API
 
-%include <boost/preprocessor/cat.hpp>
+%ignore libtorrent::throw_invalid_handle;
 
+%include <boost/preprocessor/cat.hpp>
 
 %include "libtorrent/config.hpp"
 %include "libtorrent/version.hpp"
