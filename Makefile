@@ -47,6 +47,14 @@ all: library fix_libs_$(OS)
 
 re: clean all
 
+echo:
+ifneq ($(filter x86_64%,$(GCC_TARGET)),)
+	echo "coucou"
+endif
+ifneq ($(filter i686%,$(GCC_TARGET)),)
+	echo "gna"
+endif
+
 swig: $(SWIG_FILES)
 ifeq ($(OS),Windows_NT)
 	# Needs a special patched SWIG version, sorry!
