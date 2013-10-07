@@ -6,6 +6,7 @@
 %include "libtorrent/lazy_entry.hpp"
 %include "libtorrent/copy_ptr.hpp"
 %include "libtorrent/peer_id.hpp"
+%include "file_entry.i"
 
 namespace libtorrent
 {
@@ -15,20 +16,6 @@ namespace libtorrent
     class web_seed_entry;
     class file_slice;
     class peer_request;
-
-    struct file_entry
-    {
-        std::string path;
-        size_type offset;
-        size_type size;
-        size_type file_base;
-        time_t mtime;
-        sha1_hash filehash;
-        bool pad_file:1;
-        bool hidden_attribute:1;
-        bool executable_attribute:1;
-        bool symlink_attribute:1;
-    };
 
     class torrent_info
     {

@@ -3,19 +3,22 @@
 %include "std_string.i"
 %include "stdint.i"
 
-namespace libtorrent {
-  typedef uint64_t size_type;
-}
-
 #define BOOST_POSIX_API
 
+namespace libtorrent
+{
+    typedef int64_t size_type;
+}
+
 %ignore libtorrent::throw_invalid_handle;
+%ignore libtorrent::session::add_extension;
 
 %include <boost/preprocessor/cat.hpp>
 
 %include "libtorrent/config.hpp"
 %include "libtorrent/version.hpp"
 %include "libtorrent/build_config.hpp"
+%include "libtorrent/size_type.hpp"
 
 %include "error_code.i"
 
@@ -31,4 +34,4 @@ namespace libtorrent {
 %include "session.i"
 %include "magnet_uri.i"
 %include "torrent_handle.i"
-
+%include "libtorrent/file_storage.hpp"
