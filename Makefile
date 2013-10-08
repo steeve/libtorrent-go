@@ -29,8 +29,12 @@ ifeq ($(ARCH),x64)
 	SWIG_INT_GO_SIZE = 64
 	SWIGWORDSIZE = 64
 endif
+ifeq ($(ARCH),arm)
+	SWIG_INT_GO_SIZE = 32
+	SWIGWORDSIZE = 32
+endif
 
-SWIG_FLAGS = -go -intgosize $(SWIG_INT_GO_SIZE) -DSWIGWORDSIZE$(SWIGWORDSIZE) -c++ -soname $(LIBRARY_NAME) $(LIBTORRENT_CFLAGS)
+SWIG_FLAGS = -go -intgosize $(SWIG_INT_GO_SIZE) -c++ -soname $(LIBRARY_NAME) $(LIBTORRENT_CFLAGS)
 
 ifneq ($(CROSS_HOME),)
 	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
@@ -50,7 +54,7 @@ endif
 ifeq ($(OS),Linux)
 	EXT = so
 	CFLAGS += -fPIC
-	LDFLAGS += -shared -ltorrent-rasterbar -lpthread -lm -Wl,-rpath,\$$ORIGIN
+	LDFLAGS += -shared -ltorrent -lpthread -lm -Wl,-rpath,\$$ORIGIN
 endif
 ifeq ($(OS),Darwin)
 	# clang on OS X
@@ -90,7 +94,6 @@ ifeq ($(OS), Windows_NT)
 	sed -i '' 's/\(static void (\*x_wrap_\)/\/\/\1/g' libtorrent_gc.c
 	sed -i '' 's/cgocall(x\(_wrap_.*\)/cgocall(\1/g' libtorrent_gc.c
 endif
-	cp $@ $@.tmp
 
 %.o: %.cxx
 	$(CXX) $(CFLAGS) -c $< -o $@
@@ -105,7 +108,7 @@ fix_libs_Darwin:
 	done
 
 fix_libs_Linux:
-	cp -u `ldd $(BUILD_PATH)/libtorrent-go.so | grep -E "libtorrent-rasterbar|libboost_system" | awk '{print $$3}'` $(BUILD_PATH)
+	##cp -u `ldd $(BUILD_PATH)/libtorrent-go.so | grep -E "libtorrent-rasterbar|libboost_system" | awk '{print $$3}'` $(BUILD_PATH)
 
 fix_libs_Windows_NT:
 	cp $(CROSS_HOME)/lib/libboost_system.dll $(BUILD_PATH)
