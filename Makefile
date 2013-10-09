@@ -1,9 +1,38 @@
 NAME = libtorrent-go
-CC = $(CROSS_PREFIX)-gcc
-CXX = $(CROSS_PREFIX)-g++
+CC = gcc
+CXX = g++
 SWIG = swig
+LDD = ldd
+OBJDUMP = objdump
 
-include Platform.inc
+include OS.inc
+ifeq ($(OS),Darwin)
+	# clang on OS X
+	CC = clang
+	CXX = clang++
+endif
+ifneq ($(CROSS_PREFIX),)
+	CC := $(CROSS_PREFIX)-$(CC)
+	CXX := $(CROSS_PREFIX)-$(CXX)
+	LDD := $(CROSS_PREFIX)-$(LDD)
+	OBJDUMP := $(CROSS_PREFIX)-$(OBJDUMP)
+endif
+include Arch.inc
+
+ifeq ($(ARCH),x86)
+	SWIG_INT_GO_SIZE = 32
+endif
+ifeq ($(ARCH),x64)
+	SWIG_INT_GO_SIZE = 64
+endif
+ifeq ($(ARCH),arm)
+	SWIG_INT_GO_SIZE = 32
+endif
+
+ifneq ($(CROSS_HOME),)
+	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
+	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib -L$(CROSS_HOME)/$(CROSS_PREFIX)/lib
+endif
 
 LIBTORRENT_CFLAGS = \
 	-DTORRENT_USE_OPENSSL \
@@ -14,75 +43,78 @@ LIBTORRENT_CFLAGS = \
 	-DBOOST_ASIO_DYN_LINK \
 	-DTORRENT_LINKING_SHARED
 
-CFLAGS = -g -O2 -Wno-deprecated -Wno-deprecated-declarations $(LIBTORRENT_CFLAGS)
-LDFLAGS =
+CFLAGS = -g -O2 \
+	-Wno-deprecated \
+	-Wno-deprecated-declarations \
+	$(CROSS_CFLAGS) \
+	$(LIBTORRENT_CFLAGS)
+LDFLAGS = $(CROSS_LDFLAGS)
 
-SWIG_FILES = libtorrent.i
-SRCS = $(SWIG_FILES:%.i=%_wrap.cxx)
-OBJS = $(SRCS:%.cxx=%.o)
+SWIG_FLAGS = -go -c++\
+	-soname $(LIBRARY_NAME) \
+	-intgosize $(SWIG_INT_GO_SIZE) \
+	$(CROSS_CFLAGS) \
+	$(LIBTORRENT_CFLAGS)
 
-ifeq ($(ARCH),x86)
-	SWIG_INT_GO_SIZE = 32
-	SWIGWORDSIZE = 32
-endif
-ifeq ($(ARCH),x64)
-	SWIG_INT_GO_SIZE = 64
-	SWIGWORDSIZE = 64
-endif
-ifeq ($(ARCH),arm)
-	SWIG_INT_GO_SIZE = 32
-	SWIGWORDSIZE = 32
-endif
-
-SWIG_FLAGS = -go -intgosize $(SWIG_INT_GO_SIZE) -c++ -soname $(LIBRARY_NAME) $(LIBTORRENT_CFLAGS)
-
-ifneq ($(CROSS_HOME),)
-	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
-	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib -L$(CROSS_HOME)/$(CROSS_PREFIX)/lib
-	SWIG_FLAGS += $(CROSS_CFLAGS)
-	CFLAGS += $(CROSS_CFLAGS)
-	LDFLAGS += $(CROSS_LDFLAGS)
-else
+ifeq ($(CROSS_HOME),)
 	SWIG_FLAGS += -I/usr/local/include
 endif
-
 ifeq ($(OS),Windows_NT)
 	EXT = dll
 	CFLAGS += -mthreads
-	LDFLAGS += -shared -ltorrent.dll -lboost_system -lm -mthreads -lstdc++
+	LDFLAGS += -shared -lm -mthreads -ltorrent.dll -lboost_system
 endif
 ifeq ($(OS),Linux)
 	EXT = so
 	CFLAGS += -fPIC
-	LDFLAGS += -shared -ltorrent -lpthread -lm -Wl,-rpath,\$$ORIGIN
+	LDFLAGS += -shared -lpthread -lm -ltorrent -Wl,-rpath,\$$ORIGIN
 endif
 ifeq ($(OS),Darwin)
-	# clang on OS X
-	CC = $(CROSS_PREFIX)-cc
-	CXX = $(CROSS_PREFIX)-c++
 	EXT = dylib
 	CFLAGS += -fPIC
-	LDFLAGS += -dynamiclib -ltorrent-rasterbar -lpthread -lm -Wl,-undefined,dynamic_lookup -Wl,-rpath,@executable_path/ -install_name @rpath/$(NAME).$(EXT)
+	LDFLAGS += -dynamiclib -ltorrent-rasterbar -Wl,-undefined,dynamic_lookup -Wl,-rpath,@executable_path/ -install_name @rpath/$(NAME).$(EXT)
+endif
+
+ifneq ($(CROSSHOME),)
+	LIB_SEARCH_PATH = $(CROSSHOME)
+else
+	ifeq ($(OS),Windows_NT)
+		ifeq ($(ARCH),x86_64)
+			LIB_SEARCH_PATH = c:/windows/syswow64
+		else
+			LIB_SEARCH_PATH = c:/windows/system32
+		endif
+	else
+		LIB_SEARCH_PATH = /usr/lib /usr/local/lib
+	endif
 endif
 
 
-LIBRARY_NAME = $(NAME).$(EXT)
 BUILD_PATH = build/$(OS)_$(ARCH)
+OBJ_PATH = build/$(OS)_$(ARCH)/obj
+BIN_PATH = build/$(OS)_$(ARCH)/bin
+SWIG_FILES = libtorrent.i
+SRCS = $(SWIG_FILES:%.i=$(OBJ_PATH)/%_wrap.cxx)
+GOFILES = $(SWIG_FILES:%.i=%_gc.c) $(SWIG_FILES:%.i=%.go)
+OBJS = $(SRCS:%.cxx=%.o)
+LIBRARY_NAME = $(NAME).$(EXT)
 
-all: library fix_libs_$(OS)
+all: library vendor_libs_$(OS)
 
 re: clean all
 
-echo:
+library: $(OBJS)
+	$(CXX) -o $(BIN_PATH)/$(LIBRARY_NAME) $(OBJS) $(LDFLAGS)
 
-library: $(BUILD_PATH) $(OBJS)
-	$(CXX) -o $(BUILD_PATH)/$(LIBRARY_NAME) $(OBJS) $(LDFLAGS)
+$(SWIG_FILES): $(BUILD_PATH)
 
 $(BUILD_PATH):
 	mkdir -p $(BUILD_PATH)
+	mkdir -p $(OBJ_PATH)
+	mkdir -p $(BIN_PATH)
 
-%_gc.c %.go %_wrap.cxx: %.i
-	$(SWIG) $(SWIG_FLAGS) $<
+$(SRCS) $(GOFILES): $(SWIG_FILES)
+	$(SWIG) $(SWIG_FLAGS) -o $@ -outdir . $<
 ifeq ($(OS), Windows_NT)
 	# Patch SWIG generated files for succesful compilation on Windows.
 	# Based on https://groups.google.com/forum/#!topic/golang-nuts/9L0U4Q7AtyE
@@ -95,29 +127,40 @@ ifeq ($(OS), Windows_NT)
 	sed -i '' 's/cgocall(x\(_wrap_.*\)/cgocall(\1/g' libtorrent_gc.c
 endif
 
-%.o: %.cxx
+$(OBJS): $(SRCS)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
-fix_libs_Darwin:
-	@for dylib in $(BUILD_PATH)/$(LIBRARY_NAME) $(BUILD_PATH)/libtorrent-rasterbar.7.dylib; do \
+vendor_libs_Darwin:
+	@for dylib in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent-rasterbar.7.dylib; do \
 		for dep in `otool -L $$dylib | grep -v $$dylib | grep /usr/local | awk '{print $$1}'`; do \
-			cp -f $$dep $(BUILD_PATH); \
-			chmod 644 $(BUILD_PATH)/`basename $$dep`; \
-			install_name_tool -change $$dep @rpath/`basename $$dep` $(BUILD_PATH)/`basename $$dylib`; \
+			cp -f $$dep $(BIN_PATH); \
+			chmod 644 $(BIN_PATH)/`basename $$dep`; \
+			install_name_tool -change $$dep @rpath/`basename $$dep` $(BIN_PATH)/`basename $$dylib`; \
 		done; \
 	done
 
-fix_libs_Linux:
-	##cp -u `ldd $(BUILD_PATH)/libtorrent-go.so | grep -E "libtorrent-rasterbar|libboost_system" | awk '{print $$3}'` $(BUILD_PATH)
+vendor_libs_Linux:
+ifneq ($(CROSSHOME),)
+	$(eval SEARCH_PATH = $(CROSSHOME))
+else
+	$(eval SEARCH_PATH = /usr/lib /usr/local/lib)
+endif
+	@for dep in torrent boost_system boost_date_time ssl crypto; do \
+		echo Copying lib$$dep to $(BIN_PATH); \
+		find $(SEARCH_PATH)/ -type f -iname "lib$$dep.so*" -exec cp {} $(BIN_PATH) \; ; \
+	done;
+	@chmod -R 644 $(BIN_PATH)
 
-fix_libs_Windows_NT:
-	cp $(CROSS_HOME)/lib/libboost_system.dll $(BUILD_PATH)
-	cp $(CROSS_HOME)/lib/libtorrent.dll $(BUILD_PATH)
-	cp $(CROSS_HOME)/bin/libeay32.dll $(BUILD_PATH)
-	cp $(CROSS_HOME)/bin/ssleay32.dll $(BUILD_PATH)
+vendor_libs_Windows_NT:
+	@for dll in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent.$(EXT); do \
+		for dep in `$(OBJDUMP) -p $$dll | grep "DLL Name" | awk '{print $$3}'`; do \
+			echo Copying $$dep to $(BIN_PATH); \
+			find $(CROSS_HOME) -iname $$dep -exec cp {} $(BIN_PATH) \; ; \
+		done; \
+	done;
 
 clean:
-	rm -rf $(BUILD_PATH) *.o *.go *.cxx *.c *.$(EXT)
+	rm -rf $(BUILD_PATH) $(OBJS) $(SRCS) $(GOFILES) *.$(EXT)
 
 distclean: clean
 	rm -rf build
