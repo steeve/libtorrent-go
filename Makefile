@@ -75,8 +75,8 @@ ifeq ($(OS),Darwin)
 	LDFLAGS += -dynamiclib -ltorrent-rasterbar -Wl,-undefined,dynamic_lookup -Wl,-rpath,@executable_path/ -install_name @rpath/$(NAME).$(EXT)
 endif
 
-ifneq ($(CROSSHOME),)
-	LIB_SEARCH_PATH = $(CROSSHOME)
+ifneq ($(CROSS_HOME),)
+	LIB_SEARCH_PATH = $(CROSS_HOME)
 else
 	ifeq ($(OS),Windows_NT)
 		ifeq ($(ARCH),x86_64)
@@ -140,8 +140,8 @@ vendor_libs_Darwin:
 	done
 
 vendor_libs_Linux:
-ifneq ($(CROSSHOME),)
-	$(eval SEARCH_PATH = $(CROSSHOME))
+ifneq ($(CROSS_HOME),)
+	$(eval SEARCH_PATH = $(CROSS_HOME))
 else
 	$(eval SEARCH_PATH = /usr/lib /usr/local/lib)
 endif
@@ -149,7 +149,8 @@ endif
 		echo Copying lib$$dep to $(BIN_PATH); \
 		find $(SEARCH_PATH)/ -type f -iname "lib$$dep.so*" -exec cp {} $(BIN_PATH) \; ; \
 	done;
-	@chmod -R 644 $(BIN_PATH)
+	@find $(BIN_PATH) -type f -exec chmod 644 {} \;
+	@find $(BIN_PATH) -type d -exec chmod 755 {} \;
 
 vendor_libs_Windows_NT:
 	@for dll in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent.$(EXT); do \
