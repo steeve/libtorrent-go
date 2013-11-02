@@ -4,12 +4,14 @@ CXX = g++
 SWIG = swig
 LDD = ldd
 OBJDUMP = objdump
+SED_I = sed -i
 
 include OS.inc
 ifeq ($(OS),Darwin)
 	# clang on OS X
 	CC = clang
 	CXX = clang++
+	SED_I = sed -i ''
 endif
 ifneq ($(CROSS_PREFIX),)
 	CC := $(CROSS_PREFIX)-$(CC)
@@ -103,6 +105,9 @@ all: library vendor_libs_$(OS)
 
 re: clean all
 
+test:
+	echo $(filter $(ARCH),x86 x64)
+
 library: $(OBJS)
 	$(CXX) -o $(BIN_PATH)/$(LIBRARY_NAME) $(OBJS) $(LDFLAGS)
 
@@ -115,16 +120,28 @@ $(BUILD_PATH):
 
 $(SRCS) $(GOFILES): $(SWIG_FILES)
 	$(SWIG) $(SWIG_FLAGS) -o $@ -outdir . $<
+# It should always be like this, according to https://code.google.com/p/go/source/browse/src/cmd/cgo/out.go#530
+	$(SED_I) 's/} \*swig_a/} __attribute__((__packed__)) \*swig_a/g' $@
+# Temp fix for https://code.google.com/p/go/issues/detail?id=6541
+# See also https://code.google.com/p/go/issues/detail?id=5603
+ifeq ($(CC), gcc)
+	ifneq (,$(filter $(ARCH),x86 x64))
+		$(SED_I) 's/__attribute__((__packed__))/__attribute__((__packed__, __gcc_struct__))/g' $@
+	endif
+endif
 ifeq ($(OS), Windows_NT)
-	# Patch SWIG generated files for succesful compilation on Windows.
-	# Based on https://groups.google.com/forum/#!topic/golang-nuts/9L0U4Q7AtyE
-	sed -i '' 's/\(extern void\)/\/\/\1/' $@
+# Patch SWIG generated files for succesful compilation on Windows.
+# Based on https://groups.google.com/forum/#!topic/golang-nuts/9L0U4Q7AtyE
+# Comment out externs
+	$(SED_I) 's/\(extern void\)/\/\/\1/' $@
+# Insert dllmain
 	cat dllmain.i $@ > $@.tmp
 	mv $@.tmp $@
-	sed -i '' 's/\(#pragma dynimport _ _\)/\/\/\1/' libtorrent_gc.c
-	sed -i '' 's/\(#pragma dynimport.*\)\(""\)/\1"$(LIBRARY_NAME)"/g' libtorrent_gc.c
-	sed -i '' 's/\(static void (\*x_wrap_\)/\/\/\1/g' libtorrent_gc.c
-	sed -i '' 's/cgocall(x\(_wrap_.*\)/cgocall(\1/g' libtorrent_gc.c
+# Fix imports by specifying then to the external dll, and commenting the x_wrap_* symbols
+	$(SED_I) 's/\(#pragma dynimport _ _\)/\/\/\1/' libtorrent_gc.c
+	$(SED_I) 's/\(#pragma dynimport.*\)\(""\)/\1"$(LIBRARY_NAME)"/g' libtorrent_gc.c
+	$(SED_I) 's/\(static void (\*x_wrap_\)/\/\/\1/g' libtorrent_gc.c
+	$(SED_I) 's/cgocall(x\(_wrap_.*\)/cgocall(\1/g' libtorrent_gc.c
 endif
 
 $(OBJS): $(SRCS)
