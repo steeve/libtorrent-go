@@ -10,6 +10,10 @@ namespace libtorrent
     typedef int64_t size_type;
 }
 
+namespace std {
+    typedef int time_t;
+}
+
 %ignore libtorrent::throw_invalid_handle;
 %ignore libtorrent::session::add_extension;
 
