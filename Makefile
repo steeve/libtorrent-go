@@ -6,28 +6,30 @@ LDD = ldd
 OBJDUMP = objdump
 SED_I = sed -i
 
-include OS.inc
-ifeq ($(OS),Darwin)
-	# clang on OS X
-	CC = clang
-	CXX = clang++
-	SED_I = sed -i ''
+include platform_host.mk
+
+ifeq ($(HOST_OS), darwin)
+	SED_I := $(SED_I) ''
 endif
+
 ifneq ($(CROSS_PREFIX),)
 	CC := $(CROSS_PREFIX)-$(CC)
 	CXX := $(CROSS_PREFIX)-$(CXX)
 	LDD := $(CROSS_PREFIX)-$(LDD)
 	OBJDUMP := $(CROSS_PREFIX)-$(OBJDUMP)
+else ifeq ($(HOST_OS), darwin)
+	# clang on OS X
+	CC = clang
+	CXX = clang++
 endif
-include Arch.inc
 
-ifeq ($(ARCH),x86)
+include platform_target.mk
+
+ifeq ($(TARGET_ARCH), x86)
 	SWIG_INT_GO_SIZE = 32
-endif
-ifeq ($(ARCH),x64)
+else ifeq ($(TARGET_ARCH), x64)
 	SWIG_INT_GO_SIZE = 64
-endif
-ifeq ($(ARCH),arm)
+else ifeq ($(TARGET_ARCH), arm)
 	SWIG_INT_GO_SIZE = 32
 endif
 
@@ -61,17 +63,19 @@ SWIG_FLAGS = -go -c++\
 ifeq ($(CROSS_HOME),)
 	SWIG_FLAGS += -I/usr/local/include
 endif
-ifeq ($(OS),Windows_NT)
+ifeq ($(TARGET_OS), windows)
 	EXT = dll
 	CFLAGS += -mthreads
 	LDFLAGS += -shared -lm -mthreads -ltorrent.dll -lboost_system
-endif
-ifeq ($(OS),Linux)
+else ifeq ($(TARGET_OS), linux)
 	EXT = so
 	CFLAGS += -fPIC
-	LDFLAGS += -shared -lpthread -lm -ltorrent -Wl,-rpath,\$$ORIGIN
-endif
-ifeq ($(OS),Darwin)
+	LDFLAGS += -shared -lc -lm -lpthread -ltorrent -Wl,-rpath,\$$ORIGIN
+else ifeq ($(TARGET_OS), android)
+	EXT = so
+	CFLAGS += -fPIC
+	LDFLAGS += -shared -lm -ltorrent -Wl,-rpath,\$$ORIGIN
+else ifeq ($(TARGET_OS), darwin)
 	EXT = dylib
 	CFLAGS += -fPIC
 	LDFLAGS += -dynamiclib -ltorrent-rasterbar -Wl,-undefined,dynamic_lookup -Wl,-rpath,@executable_path/ -install_name @rpath/$(NAME).$(EXT)
@@ -80,8 +84,8 @@ endif
 ifneq ($(CROSS_HOME),)
 	LIB_SEARCH_PATH = $(CROSS_HOME)
 else
-	ifeq ($(OS),Windows_NT)
-		ifeq ($(ARCH),x86_64)
+	ifeq ($(HOST_OS), windows)
+		ifeq ($(HOST_ARCH), x64)
 			LIB_SEARCH_PATH = c:/windows/syswow64
 		else
 			LIB_SEARCH_PATH = c:/windows/system32
@@ -92,21 +96,22 @@ else
 endif
 
 
-BUILD_PATH = build/$(OS)_$(ARCH)
-OBJ_PATH = build/$(OS)_$(ARCH)/obj
-BIN_PATH = build/$(OS)_$(ARCH)/bin
+BUILD_PATH = build/$(TARGET_OS)_$(TARGET_ARCH)
+OBJ_PATH = $(BUILD_PATH)/obj
+BIN_PATH = $(BUILD_PATH)/bin
 SWIG_FILES = libtorrent.i
 SRCS = $(SWIG_FILES:%.i=$(OBJ_PATH)/%_wrap.cxx)
 GOFILES = $(SWIG_FILES:%.i=%_gc.c) $(SWIG_FILES:%.i=%.go)
 OBJS = $(SRCS:%.cxx=%.o)
 LIBRARY_NAME = $(NAME).$(EXT)
 
-all: library vendor_libs_$(OS)
+all: library vendor_libs_$(TARGET_OS)
 
 re: clean all
 
 test:
-	echo $(filter $(ARCH),x86 x64)
+	@echo Building from $(HOST_OS) $(HOST_ARCH) to $(TARGET_OS) $(TARGET_ARCH)
+	@echo $(CC)
 
 library: $(OBJS)
 	$(CXX) -o $(BIN_PATH)/$(LIBRARY_NAME) $(OBJS) $(LDFLAGS)
@@ -125,11 +130,11 @@ $(SRCS) $(GOFILES): $(SWIG_FILES)
 # Temp fix for https://code.google.com/p/go/issues/detail?id=6541
 # See also https://code.google.com/p/go/issues/detail?id=5603
 ifeq ($(CC), gcc)
-	ifneq (,$(filter $(ARCH),x86 x64))
+	ifneq (,$(filter $(TARGET_ARCH),x86 x64))
 		$(SED_I) 's/__attribute__((__packed__))/__attribute__((__packed__, __gcc_struct__))/g' $@
 	endif
 endif
-ifeq ($(OS), Windows_NT)
+ifeq ($(TARGET_OS), windows)
 # Patch SWIG generated files for succesful compilation on Windows.
 # Based on https://groups.google.com/forum/#!topic/golang-nuts/9L0U4Q7AtyE
 # Comment out externs
@@ -147,7 +152,7 @@ endif
 $(OBJS): $(SRCS)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
-vendor_libs_Darwin:
+vendor_libs_darwin:
 	@for dylib in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent-rasterbar.7.dylib; do \
 		for dep in `otool -L $$dylib | grep -v $$dylib | grep /usr/local | awk '{print $$1}'`; do \
 			cp -f $$dep $(BIN_PATH); \
@@ -156,7 +161,7 @@ vendor_libs_Darwin:
 		done; \
 	done
 
-vendor_libs_Linux:
+vendor_libs_linux:
 ifneq ($(CROSS_HOME),)
 	$(eval SEARCH_PATH = $(CROSS_HOME))
 else
@@ -169,7 +174,9 @@ endif
 	@find $(BIN_PATH) -type f -exec chmod 644 {} \;
 	@find $(BIN_PATH) -type d -exec chmod 755 {} \;
 
-vendor_libs_Windows_NT:
+vendor_libs_android: vendor_libs_Linux
+
+vendor_libs_windows:
 	@for dll in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent.$(EXT); do \
 		for dep in `$(OBJDUMP) -p $$dll | grep "DLL Name" | awk '{print $$3}'`; do \
 			echo Copying $$dep to $(BIN_PATH); \
