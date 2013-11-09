@@ -1,0 +1,77 @@
+brew install boost-build
+
+OpenSSL
+
+CROSS_COMPILE=i586-mingw32- ./configure threads shared mingw --prefix=/usr/local/gcc-4.8.0-mingw32
+make clean && make && make install
+
+CROSS_COMPILE=x86_64-pc-linux- ./configure threads shared linux-x86_64 --prefix=/usr/local/gcc-4.8.0-linux64
+make clean && make && make install
+
+CROSS_COMPILE=arm-linux-androideabi- ./configure threads shared linux-armv4 --prefix=/usr/local/gcc-4.8.0-arm-linux-androideabi
+make clean && make && make install
+
+
+Grab toolchain from http://www.carlson-minot.com/available-arm-gnu-linux-g-lite-builds-for-mac-os-x
+export CROSSHOST=arm-linux-gnueabihf
+export CROSSHOME=/usr/local/gcc-linaro-arm-linux-gnueabihf-raspbian
+CROSS_COMPILE=$CROSSHOST- ./configure threads shared linux-elf --prefix=$CROSSHOME no-asm
+make clean && make && make install
+
+
+export CROSSHOST=arm-linux-androideabi
+export CROSSHOME=/usr/local/gcc-4.8.0-arm-linux-androideabi
+CROSS_COMPILE=$CROSSHOST- ./configure threads shared linux-elf --prefix=$CROSSHOME no-asm
+make clean && make && make install
+
+
+
+
+
+Boost:
+./bootstrap.sh
+echo "using gcc : mingw32 : i586-mingw32-g++ ;" >> tools/build/v2/user-config.jam
+echo "using gcc : linux64 : x86_64-pc-linux-g++ ;" >> tools/build/v2/user-config.jam
+echo "using gcc : linuxarm : $CROSSHOST-g++ ;" > tools/build/v2/user-config.jam
+echo "using gcc : android : $CROSSHOST-g++ ;" > tools/build/v2/user-config.jam
+
+b2 --with-date_time --with-system --prefix=/usr/local/gcc-4.8.0-mingw32 toolset=gcc-mingw32 link=shared variant=release threading=multi target-os=windows threadapi=win32 install
+b2 --with-date_time --with-system --prefix=/usr/local/gcc-4.8.0-linux64 toolset=gcc-linux64 link=shared variant=release threading=multi target-os=linux install
+
+b2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-linuxarm link=shared variant=release threading=multi target-os=linux install
+
+b2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-android link=shared variant=release threading=multi target-os=linux install
+
+Libtorrent:
+echo "using gcc : mingw32 : i586-mingw32-g++ ;" > user-config.jam
+echo "using gcc : linux64 : x86_64-pc-linux-g++ ;" >> user-config.jam
+echo "using gcc : linuxarm : arm-none-linux-gnueabi-g++ ;" >> user-config.jam
+echo "using gcc : android : $CROSSHOST-g++ ;" > user-config.jam
+
+
+remove /usr/local/include from Jamfile
+
+
+export CROSSHOME=/usr/local/gcc-4.8.0-mingw32
+b2 -j4 -q --without-python toolset=gcc-mingw32 cxxflags="-w -I/usr/local/gcc-4.8.0-mingw32/include" search=/usr/local/gcc-4.8.0-mingw32/lib variant=release link=shared boost-link=shared encryption=openssl logging=none dht-support=on geoip=static pool-allocators=on deprecated-functions=on i2p=on iconv=off target-os=windows
+find bin -name "*.dll*" -exec cp {} $CROSSHOME/lib \;
+
+export CROSSHOME=/usr/local/gcc-4.8.0-linux64
+b2 -q --without-python --prefix=$CROSSHOME toolset=gcc-linux64 cxxflags="-w -I$CROSSHOME/include" search=$CROSSHOME/lib variant=release link=shared boost-link=shared encryption=openssl logging=none dht-support=on geoip=static pool-allocators=on deprecated-functions=on i2p=on iconv=off target-os=linux install
+
+echo "using gcc : linuxarm : $CROSSHOST-g++ ;" > user-config.jam
+b2 -j4 -q --without-python --prefix=$CROSSHOME toolset=gcc-linuxarm cxxflags="-w -I$CROSSHOME/include" search=$CROSSHOME/lib variant=release link=shared boost-link=shared encryption=openssl logging=none dht-support=on geoip=static pool-allocators=on deprecated-functions=on i2p=on iconv=off target-os=linux
+
+echo "using gcc : android : $CROSSHOST-g++ ;" > ~/user-config.jam
+b2 -j4 -q --without-python --prefix=$CROSSHOME toolset=gcc-android cxxflags="-w -I$CROSSHOME/include" search=$CROSSHOME/lib variant=release link=shared boost-link=static encryption=openssl logging=none dht-support=on geoip=static pool-allocators=on deprecated-functions=on i2p=on iconv=off target-os=android
+
+zlib:
+mingw32
+CROSSHOME=/usr/local/gcc-4.8.0-mingw32 BINARY_PATH=$CROSSHOME/bin INCLUDE_PATH=$CROSSHOME/include LIBRARY_PATH=$CROSSHOME/lib make -f win32/Makefile.gcc install CC=i586-mingw32-gcc AR=i586-mingw32-ar RC=i586-mingw32-windres
+
+linux64
+CHOST=x86_64-pc-linux ./configure --static --prefix=/usr/local/gcc-4.8.0-linux64
+make && make install
+
+
+CHOST=$CROSSHOST ./configure --static --prefix=$CROSSHOME
