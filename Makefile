@@ -1,9 +1,6 @@
-NAME = libtorrent-go
 CC = gcc
 CXX = g++
 SWIG = swig
-LDD = ldd
-OBJDUMP = objdump
 SED_I = sed -i
 
 include platform_host.mk
@@ -15,8 +12,6 @@ endif
 ifneq ($(CROSS_PREFIX),)
 	CC := $(CROSS_PREFIX)-$(CC)
 	CXX := $(CROSS_PREFIX)-$(CXX)
-	LDD := $(CROSS_PREFIX)-$(LDD)
-	OBJDUMP := $(CROSS_PREFIX)-$(OBJDUMP)
 else ifeq ($(HOST_OS), darwin)
 	# clang on OS X
 	CC = clang
@@ -36,26 +31,17 @@ endif
 ifneq ($(CROSS_HOME),)
 	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
 	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib -L$(CROSS_HOME)/$(CROSS_PREFIX)/lib
+	PKG_CONFIG_PATH = $(CROSS_HOME)/lib/pkgconfig
 endif
 
-LIBTORRENT_CFLAGS = \
-	-DTORRENT_USE_OPENSSL \
-	-DWITH_SHIPPED_GEOIP_H \
-	-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 \
-	-DBOOST_EXCEPTION_DISABLE \
-	-DBOOST_ASIO_ENABLE_CANCELIO \
-	-DBOOST_ASIO_DYN_LINK \
-	-DTORRENT_LINKING_SHARED
+LIBTORRENT_CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags libtorrent-rasterbar)
+LIBTORRENT_LDFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs libtorrent-rasterbar)
 
-CFLAGS = -g -O2 \
-	-Wno-deprecated \
-	-Wno-deprecated-declarations \
-	$(CROSS_CFLAGS) \
-	$(LIBTORRENT_CFLAGS)
+CFLAGS = -O2 -Wno-deprecated -Wno-deprecated-declarations $(CROSS_CFLAGS) $(LIBTORRENT_CFLAGS)
 LDFLAGS = $(CROSS_LDFLAGS)
 
 SWIG_FLAGS = -go -c++\
-	-soname $(LIBRARY_NAME) \
+	-soname dummy \
 	-intgosize $(SWIG_INT_GO_SIZE) \
 	$(CROSS_CFLAGS) \
 	$(LIBTORRENT_CFLAGS)
@@ -64,21 +50,17 @@ ifeq ($(CROSS_HOME),)
 	SWIG_FLAGS += -I/usr/local/include
 endif
 ifeq ($(TARGET_OS), windows)
-	EXT = dll
 	CFLAGS += -mthreads
 	LDFLAGS += -shared -lm -mthreads -ltorrent.dll -lboost_system
 else ifeq ($(TARGET_OS), linux)
-	EXT = so
 	CFLAGS += -fPIC
 	LDFLAGS += -shared -lc -lm -lpthread -ltorrent -Wl,-rpath,\$$ORIGIN
 else ifeq ($(TARGET_OS), android)
-	EXT = so
 	CFLAGS += -fPIC
-	LDFLAGS += -shared -lm -ltorrent -Wl,-rpath,\$$ORIGIN
+	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
 else ifeq ($(TARGET_OS), darwin)
-	EXT = dylib
-	CFLAGS += -fPIC
-	LDFLAGS += -dynamiclib -ltorrent-rasterbar -Wl,-undefined,dynamic_lookup -Wl,-rpath,@executable_path/ -install_name @rpath/$(NAME).$(EXT)
+	CFLAGS += -fPIC -mmacosx-version-min=10.6
+	LDFLAGS += $(LIBTORRENT_LDFLAGS)
 endif
 
 ifneq ($(CROSS_HOME),)
@@ -96,96 +78,42 @@ else
 endif
 
 
-BUILD_PATH = build/$(TARGET_OS)_$(TARGET_ARCH)
-OBJ_PATH = $(BUILD_PATH)/obj
-BIN_PATH = $(BUILD_PATH)/bin
 SWIG_FILES = libtorrent.i
-SRCS = $(SWIG_FILES:%.i=$(OBJ_PATH)/%_wrap.cxx)
+SRCS = $(SWIG_FILES:%.i=%_wrap.cxx)
 GOFILES = $(SWIG_FILES:%.i=%_gc.c) $(SWIG_FILES:%.i=%.go)
 OBJS = $(SRCS:%.cxx=%.o)
-LIBRARY_NAME = $(NAME).$(EXT)
 
-all: library vendor_libs_$(TARGET_OS)
+all: $(OBJS)
 
 re: clean all
-
-test:
-	@echo Building from $(HOST_OS) $(HOST_ARCH) to $(TARGET_OS) $(TARGET_ARCH)
-	@echo $(CC)
-
-library: $(OBJS)
-	$(CXX) -o $(BIN_PATH)/$(LIBRARY_NAME) $(OBJS) $(LDFLAGS)
-
-$(SWIG_FILES): $(BUILD_PATH)
-
-$(BUILD_PATH):
-	mkdir -p $(BUILD_PATH)
-	mkdir -p $(OBJ_PATH)
-	mkdir -p $(BIN_PATH)
 
 $(SRCS) $(GOFILES): $(SWIG_FILES)
 	$(SWIG) $(SWIG_FLAGS) -o $@ -outdir . $<
 # It should always be like this, according to https://code.google.com/p/go/source/browse/src/cmd/cgo/out.go#530
 	$(SED_I) 's/} \*swig_a/} __attribute__((__packed__)) \*swig_a/g' $@
+	$(SED_I) 's/} a/} __attribute__((__packed__)) a/g' $@
+# Convert imports to static imports
+	$(SED_I) 's/#pragma dynimport _ _ ".*"//g' $(<:%.i=%_gc.c)
+	$(SED_I) 's/#pragma dynimport \(.*\) .* ""/#pragma cgo_import_static \1/g' $(<:%.i=%_gc.c)
+# Ensure the ldflags are properly set for static compilation
+	echo "#pragma cgo_ldflag \"$(shell pwd)/$(@:%.cxx=%.o)\"" > $(<:%.i=%_gc.cgo)
+	for flag in $(LDFLAGS); do\
+		echo "#pragma cgo_ldflag \"$$flag\"" >> $(<:%.i=%_gc.cgo) ;\
+	done
+	cat $(<:%.i=%_gc.c) >> $(<:%.i=%_gc.cgo)
+# Overwrite the file
+	mv $(<:%.i=%_gc.cgo) $(<:%.i=%_gc.c)
 # Temp fix for https://code.google.com/p/go/issues/detail?id=6541
 # See also https://code.google.com/p/go/issues/detail?id=5603
-ifeq ($(CC), gcc)
-	ifneq (,$(filter $(TARGET_ARCH),x86 x64))
-		$(SED_I) 's/__attribute__((__packed__))/__attribute__((__packed__, __gcc_struct__))/g' $@
-	endif
+ifneq ($(findstring gcc, $(CC)),)
+ifneq (,$(filter $(TARGET_ARCH),x86 x64))
+	$(SED_I) 's/__attribute__((__packed__))/__attribute__((__packed__, __gcc_struct__))/g' $@
 endif
-ifeq ($(TARGET_OS), windows)
-# Patch SWIG generated files for succesful compilation on Windows.
-# Based on https://groups.google.com/forum/#!topic/golang-nuts/9L0U4Q7AtyE
-# Comment out externs
-	$(SED_I) 's/\(extern void\)/\/\/\1/' $@
-# Insert dllmain
-	cat dllmain.i $@ > $@.tmp
-	mv $@.tmp $@
-# Fix imports by specifying then to the external dll, and commenting the x_wrap_* symbols
-	$(SED_I) 's/\(#pragma dynimport _ _\)/\/\/\1/' libtorrent_gc.c
-	$(SED_I) 's/\(#pragma dynimport.*\)\(""\)/\1"$(LIBRARY_NAME)"/g' libtorrent_gc.c
-	$(SED_I) 's/\(static void (\*x_wrap_\)/\/\/\1/g' libtorrent_gc.c
-	$(SED_I) 's/cgocall(x\(_wrap_.*\)/cgocall(\1/g' libtorrent_gc.c
 endif
 
 $(OBJS): $(SRCS)
 	$(CXX) $(CFLAGS) -c $< -o $@
-
-vendor_libs_darwin:
-	@for dylib in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent-rasterbar.7.dylib; do \
-		for dep in `otool -L $$dylib | grep -v $$dylib | grep /usr/local | awk '{print $$1}'`; do \
-			cp -f $$dep $(BIN_PATH); \
-			chmod 644 $(BIN_PATH)/`basename $$dep`; \
-			install_name_tool -change $$dep @rpath/`basename $$dep` $(BIN_PATH)/`basename $$dylib`; \
-		done; \
-	done
-
-vendor_libs_linux:
-ifneq ($(CROSS_HOME),)
-	$(eval SEARCH_PATH = $(CROSS_HOME))
-else
-	$(eval SEARCH_PATH = /usr/lib /usr/local/lib)
-endif
-	@for dep in torrent boost_system boost_date_time ssl crypto; do \
-		echo Copying lib$$dep to $(BIN_PATH); \
-		find $(SEARCH_PATH)/ -type f -iname "lib$$dep.so*" -exec cp {} $(BIN_PATH) \; ; \
-	done;
-	@find $(BIN_PATH) -type f -exec chmod 644 {} \;
-	@find $(BIN_PATH) -type d -exec chmod 755 {} \;
-
-vendor_libs_android: vendor_libs_Linux
-
-vendor_libs_windows:
-	@for dll in $(BIN_PATH)/$(LIBRARY_NAME) $(BIN_PATH)/libtorrent.$(EXT); do \
-		for dep in `$(OBJDUMP) -p $$dll | grep "DLL Name" | awk '{print $$3}'`; do \
-			echo Copying $$dep to $(BIN_PATH); \
-			find $(CROSS_HOME) -iname $$dep -exec cp {} $(BIN_PATH) \; ; \
-		done; \
-	done;
+	rm -f $<
 
 clean:
-	rm -rf $(BUILD_PATH) $(OBJS) $(SRCS) $(GOFILES) *.$(EXT)
-
-distclean: clean
-	rm -rf build
+	rm -rf $(OBJS) $(SRCS) $(GOFILES) *.o
