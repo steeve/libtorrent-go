@@ -14,6 +14,11 @@ namespace std {
     typedef int time_t;
 }
 
+namespace boost {
+    typedef ::int64_t int64_t;
+}
+
+
 %ignore libtorrent::throw_invalid_handle;
 %ignore libtorrent::session::add_extension;
 
