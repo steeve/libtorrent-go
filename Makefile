@@ -30,7 +30,7 @@ endif
 
 ifneq ($(CROSS_HOME),)
 	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
-	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib -L$(CROSS_HOME)/$(CROSS_PREFIX)/lib
+	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib
 	PKG_CONFIG_PATH = $(CROSS_HOME)/lib/pkgconfig
 endif
 
