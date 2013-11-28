@@ -40,7 +40,7 @@ LIBTORRENT_LDFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --lib
 CFLAGS = -O2 -Wno-deprecated -Wno-deprecated-declarations $(CROSS_CFLAGS) $(LIBTORRENT_CFLAGS)
 LDFLAGS = $(CROSS_LDFLAGS)
 
-SWIG_FLAGS = -go -c++\
+SWIG_FLAGS = -go -c++ -D__GNUC__\
 	-soname dummy \
 	-intgosize $(SWIG_INT_GO_SIZE) \
 	$(CROSS_CFLAGS) \
@@ -50,17 +50,21 @@ ifeq ($(CROSS_HOME),)
 	SWIG_FLAGS += -I/usr/local/include
 endif
 ifeq ($(TARGET_OS), windows)
+	SWIG_FLAGS += -D__MINGW32__
 	CFLAGS += -mthreads
 	LDFLAGS += -shared -lm -mthreads -ltorrent.dll -lboost_system
 else ifeq ($(TARGET_OS), linux)
+	SWIG_FLAGS += -D__linux__
 	CFLAGS += -fPIC
-	LDFLAGS += -shared -lc -lm -lpthread -ltorrent -Wl,-rpath,\$$ORIGIN
+	LDFLAGS += -Wl,Bstatic $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
 else ifeq ($(TARGET_OS), android)
+	SWIG_FLAGS += -D__linux__ -D__android__
 	CFLAGS += -fPIC
-	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
+	LDFLAGS += -Wl,Bstatic $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
 else ifeq ($(TARGET_OS), darwin)
+	SWIG_FLAGS += -D__APPLE__ -D__MACH__
 	CFLAGS += -fPIC -mmacosx-version-min=10.6
-	LDFLAGS += $(LIBTORRENT_LDFLAGS)
+	LDFLAGS += $(LIBTORRENT_LDFLAGS) -mmacosx-version-min=10.6 -lm -lssl -lcrypto -lstdc++
 endif
 
 ifneq ($(CROSS_HOME),)
