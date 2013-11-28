@@ -8,7 +8,7 @@ make clean && make && make install
 CROSS_COMPILE=x86_64-pc-linux- ./configure threads shared linux-x86_64 --prefix=/usr/local/gcc-4.8.0-linux64
 make clean && make && make install
 
-CROSS_COMPILE=arm-linux-androideabi- ./configure threads shared linux-armv4 --prefix=/usr/local/gcc-4.8.0-arm-linux-androideabi
+CROSS_COMPILE=arm-linux-androideabi- ./configure threads no-shared linux-armv4 --prefix=/usr/local/gcc-4.8.0-arm-linux-androideabi
 make clean && make && make install
 
 
@@ -21,7 +21,7 @@ make clean && make && make install
 
 export CROSSHOST=arm-linux-androideabi
 export CROSSHOME=/usr/local/gcc-4.8.0-arm-linux-androideabi
-CROSS_COMPILE=$CROSSHOST- ./configure threads shared linux-elf --prefix=$CROSSHOME no-asm
+CROSS_COMPILE=$CROSSHOST- ./configure threads no-shared linux-elf --prefix=$CROSSHOME no-asm
 make clean && make && make install
 
 
@@ -64,6 +64,29 @@ b2 -j4 -q --without-python --prefix=$CROSSHOME toolset=gcc-linuxarm cxxflags="-w
 
 echo "using gcc : android : $CROSSHOST-g++ ;" > ~/user-config.jam
 b2 -j4 -q --without-python --prefix=$CROSSHOME toolset=gcc-android cxxflags="-w -I$CROSSHOME/include" search=$CROSSHOME/lib variant=release link=shared boost-link=static encryption=openssl logging=none dht-support=on geoip=static pool-allocators=on deprecated-functions=on i2p=on iconv=off target-os=android
+
+
+
+CPPFLAGS="-I$CROSSHOME/include -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS" \
+CPPFLAGS="-I$CROSSHOME/include" \
+    ./configure \
+    --disable-shared \
+    --host=$CROSSHOST \
+    --prefix=$CROSSHOME \
+    --with-boost-libdir=$CROSSHOME/lib
+
+
+CPPFLAGS="-I$CROSSHOME/include -DTORRENT_DEBUG_BUFFERS=1" \
+    ./configure \
+    --enable-logging \
+    --disable-pool-allocators \
+    --enable-debug \
+    --disable-shared \
+    --host=$CROSSHOST \
+    --prefix=$CROSSHOME \
+    --with-boost-libdir=$CROSSHOME/lib
+
+
 
 zlib:
 mingw32
