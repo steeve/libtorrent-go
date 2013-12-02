@@ -3,6 +3,10 @@
 %include "std_string.i"
 %include "stdint.i"
 
+#ifdef SWIGWIN
+    %include "windows.i"
+#endif
+
 #define BOOST_POSIX_API
 
 namespace libtorrent
