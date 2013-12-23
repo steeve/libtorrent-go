@@ -3,6 +3,7 @@ CC = gcc
 CXX = g++
 SWIG = swig
 SED_I = sed -i
+PKG_CONFIG = pkg-config
 
 include platform_host.mk
 
@@ -11,8 +12,8 @@ ifeq ($(HOST_OS), darwin)
 endif
 
 ifneq ($(CROSS_PREFIX),)
-	CC := $(CROSS_PREFIX)-$(CC)
-	CXX := $(CROSS_PREFIX)-$(CXX)
+	CC := $(CROSS_HOME)/bin/$(CROSS_PREFIX)-$(CC)
+	CXX := $(CROSS_HOME)/bin/$(CROSS_PREFIX)-$(CXX)
 else ifeq ($(HOST_OS), darwin)
 	# clang on OS X
 	CC = clang
@@ -32,11 +33,11 @@ endif
 ifneq ($(CROSS_HOME),)
 	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
 	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib
-	PKG_CONFIG_LIBDIR = $(CROSS_HOME)/lib/pkgconfig
+	PKG_CONFIG := PKG_CONFIG_LIBDIR=$(CROSS_HOME)/lib/pkgconfig $(PKG_CONFIG)
 endif
 
-LIBTORRENT_CFLAGS = $(shell PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR) pkg-config --cflags libtorrent-rasterbar)
-LIBTORRENT_LDFLAGS = $(shell PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR) pkg-config --static --libs libtorrent-rasterbar)
+LIBTORRENT_CFLAGS = $(shell $(PKG_CONFIG) --cflags libtorrent-rasterbar)
+LIBTORRENT_LDFLAGS = $(shell $(PKG_CONFIG) --static --libs libtorrent-rasterbar)
 
 CFLAGS = -O2 -Wno-deprecated -Wno-deprecated-declarations $(CROSS_CFLAGS) $(LIBTORRENT_CFLAGS)
 LDFLAGS = $(CROSS_LDFLAGS)
@@ -57,12 +58,12 @@ ifeq ($(TARGET_OS), windows)
 	LDFLAGS += -shared $(LIBTORRENT_LDFLAGS)
 else ifeq ($(TARGET_OS), linux)
 	SWIG_FLAGS += -D__linux__
-	CFLAGS += -fPIC
-	LDFLAGS += -Wl,Bstatic $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
+	CFLAGS += -fPIC -mmacosx-version-min=10.6 -march=core2
+	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lstdc++ -ldl
 else ifeq ($(TARGET_OS), android)
 	SWIG_FLAGS += -D__linux__ -D__android__
 	CFLAGS += -fPIC -ggdb -fstack-protector-all
-	LDFLAGS += -Wl,-Bstatic $(LIBTORRENT_LDFLAGS) -lssl -lcrypto -Wl,-Bdynamic -lstdc++
+	LDFLAGS += -Wl,-Bstatic $(LIBTORRENT_LDFLAGS) -lm -Wl,-Bdynamic -lstdc++
 else ifeq ($(TARGET_OS), darwin)
 	SWIG_FLAGS += -D__APPLE__ -D__MACH__
 	CFLAGS += -fPIC -mmacosx-version-min=10.6
@@ -91,8 +92,6 @@ OBJS = $(SRCS:%.cxx=%.o)
 
 
 BUILD_PATH = build/$(TARGET_OS)_$(TARGET_ARCH)
-OBJ_PATH = $(BUILD_PATH)/obj
-BIN_PATH = $(BUILD_PATH)/bin
 LIBRARY_NAME = $(NAME).$(EXT)
 
 all: dist
@@ -101,8 +100,6 @@ re: clean all
 
 $(BUILD_PATH):
 	mkdir -p $(BUILD_PATH)
-	mkdir -p $(OBJ_PATH)
-	mkdir -p $(BIN_PATH)
 
 $(SRCS) $(GOFILES): $(SWIG_FILES)
 	$(SWIG) $(SWIG_FLAGS) -o $@ -outdir . $<
@@ -117,7 +114,7 @@ ifneq (,$(filter $(TARGET_ARCH),x86 x64))
 endif
 endif
 
-dist_linux dist_android dist_darwin: swig_static
+dist_linux dist_android dist_darwin: swig_static $(OBJS)
 
 dist_windows: swig_shared shared_library
 
@@ -140,7 +137,7 @@ swig_shared: $(SRCS) $(GOFILES)
 	$(SED_I) 's/cgocall(x\(_wrap_.*\)/cgocall(\1/g' libtorrent_gc.c
 
 shared_library: swig_shared $(OBJS) $(BUILD_PATH)
-	$(CXX) -o $(BIN_PATH)/$(LIBRARY_NAME) $(CFLAGS) $(OBJS) $(LDFLAGS)
+	$(CXX) -o $(BUILD_PATH)/$(LIBRARY_NAME) $(CFLAGS) $(OBJS) $(LDFLAGS)
 
 swig_static: $(SRCS) $(GOFILES)
 # Convert imports to static imports
