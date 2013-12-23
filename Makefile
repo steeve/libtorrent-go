@@ -58,7 +58,7 @@ ifeq ($(TARGET_OS), windows)
 	LDFLAGS += -shared $(LIBTORRENT_LDFLAGS)
 else ifeq ($(TARGET_OS), linux)
 	SWIG_FLAGS += -D__linux__
-	CFLAGS += -fPIC -mmacosx-version-min=10.6 -march=core2
+	CFLAGS += -fPIC
 	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lstdc++ -ldl
 else ifeq ($(TARGET_OS), android)
 	SWIG_FLAGS += -D__linux__ -D__android__
