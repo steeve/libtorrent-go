@@ -49,7 +49,7 @@ SWIG_FLAGS = -go -c++ -D__GNUC__\
 	$(LIBTORRENT_CFLAGS)
 
 ifeq ($(CROSS_HOME),)
-	SWIG_FLAGS += -I/usr/local/include
+	SWIG_FLAGS += -I/usr/include -I/usr/local/include
 endif
 ifeq ($(TARGET_OS), windows)
 	EXT = dll
