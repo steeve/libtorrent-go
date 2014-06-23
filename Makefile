@@ -1,6 +1,6 @@
 NAME = libtorrent-go
-CC = gcc
-CXX = g++
+CC = cc
+CXX = c++
 SWIG = swig
 SED_I = sed -i
 PKG_CONFIG = pkg-config
