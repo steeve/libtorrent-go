@@ -11,13 +11,9 @@ ifeq ($(HOST_OS), darwin)
 	SED_I := $(SED_I) ''
 endif
 
-ifneq ($(CROSS_PREFIX),)
-	CC := $(CROSS_HOME)/bin/$(CROSS_PREFIX)-$(CC)
-	CXX := $(CROSS_HOME)/bin/$(CROSS_PREFIX)-$(CXX)
-else ifeq ($(HOST_OS), darwin)
-	# clang on OS X
-	CC = clang
-	CXX = clang++
+ifneq ($(CROSS_TRIPLE),)
+	CC := $(CROSS_ROOT)/bin/$(CROSS_TRIPLE)-$(CC)
+	CXX := $(CROSS_ROOT)/bin/$(CROSS_TRIPLE)-$(CXX)
 endif
 
 include platform_target.mk
@@ -30,48 +26,51 @@ else ifeq ($(TARGET_ARCH), arm)
 	SWIG_INT_GO_SIZE = 32
 endif
 
-ifneq ($(CROSS_HOME),)
-	CROSS_CFLAGS = -I$(CROSS_HOME)/include -I$(CROSS_HOME)/$(CROSS_PREFIX)/include
-	CROSS_LDFLAGS = -L$(CROSS_HOME)/lib
-	PKG_CONFIG := PKG_CONFIG_LIBDIR=$(CROSS_HOME)/lib/pkgconfig $(PKG_CONFIG)
+ifneq ($(CROSS_ROOT),)
+	CROSS_CFLAGS = -I$(CROSS_ROOT)/include -I$(CROSS_ROOT)/$(CROSS_TRIPLE)/include
+	CROSS_LDFLAGS = -L$(CROSS_ROOT)/lib
+	PKG_CONFIG := PKG_CONFIG_LIBDIR=$(CROSS_ROOT)/lib/pkgconfig $(PKG_CONFIG)
 endif
 
 LIBTORRENT_CFLAGS = $(shell $(PKG_CONFIG) --cflags libtorrent-rasterbar)
 LIBTORRENT_LDFLAGS = $(shell $(PKG_CONFIG) --static --libs libtorrent-rasterbar)
 
-CFLAGS = -O2 -Wno-deprecated -Wno-deprecated-declarations $(CROSS_CFLAGS) $(LIBTORRENT_CFLAGS)
+CC_DEFINES = $(shell echo | $(CC) -dM -E - | grep -v "__GNUC__\|__STDC__" | sed -E "s/\#define[[:space:]]+([a-zA-Z0-9_()]+)[[:space:]]+(.*)/-D'\1'='\2'/g" | tr '\n' ' ')
+CC_INCLUDES = $(shell $(CC) -x c++ -v -E /dev/null 2>&1 | sed -n "/search starts here/,/End of search list./p" | grep -e "^ .*" | sed -E "s/[[:space:]]+(.*)/-I'\1'/g" | tr '\n' ' ')
+CFLAGS = -O2 -Wno-deprecated -Wno-deprecated-declarations $(CROSS_CFLAGS) $(CC_INCLUDES) $(LIBTORRENT_CFLAGS)
 LDFLAGS = $(CROSS_LDFLAGS)
 
 SWIG_FLAGS = -go -c++ -D__GNUC__\
 	-soname dummy \
 	-intgosize $(SWIG_INT_GO_SIZE) \
 	$(CROSS_CFLAGS) \
-	$(LIBTORRENT_CFLAGS)
+	$(LIBTORRENT_CFLAGS) \
+	$(CC_DEFINES)
 
-ifeq ($(CROSS_HOME),)
+ifeq ($(CROSS_ROOT),)
 	SWIG_FLAGS += -I/usr/local/include
 endif
+
+
 ifeq ($(TARGET_OS), windows)
 	EXT = dll
-	SWIG_FLAGS += -D__MINGW32__ -D_WIN32_WINNT=0x0501 -DSWIGWIN
+	SWIG_FLAGS += -D_WIN32_WINNT=0x0501 -DSWIGWIN
 	CFLAGS += -mthreads
 	LDFLAGS += -shared $(LIBTORRENT_LDFLAGS)
 else ifeq ($(TARGET_OS), linux)
-	SWIG_FLAGS += -D__linux__
 	CFLAGS += -fPIC
 	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lstdc++ -ldl
 else ifeq ($(TARGET_OS), android)
-	SWIG_FLAGS += -D__linux__ -D__android__
 	CFLAGS += -fPIC -ggdb -fstack-protector-all
 	LDFLAGS += -Wl,-Bstatic $(LIBTORRENT_LDFLAGS) -lm -Wl,-Bdynamic -lstdc++
 else ifeq ($(TARGET_OS), darwin)
-	SWIG_FLAGS += -D__APPLE__ -D__MACH__
+	SWIG_FLAGS += -DSWIGMAC
 	CFLAGS += -fPIC -mmacosx-version-min=10.6
 	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
 endif
 
-ifneq ($(CROSS_HOME),)
-	LIB_SEARCH_PATH = $(CROSS_HOME)
+ifneq ($(CROSS_ROOT),)
+	LIB_SEARCH_PATH = $(CROSS_ROOT)
 else
 	ifeq ($(HOST_OS), windows)
 		ifeq ($(HOST_ARCH), x64)
@@ -95,6 +94,9 @@ BUILD_PATH = build/$(TARGET_OS)_$(TARGET_ARCH)
 LIBRARY_NAME = $(NAME).$(EXT)
 
 all: dist
+
+test:
+	@echo $(CC_DEFINES)
 
 re: clean all
 
