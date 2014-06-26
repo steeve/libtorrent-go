@@ -2,7 +2,7 @@ NAME = libtorrent-go
 CC = cc
 CXX = c++
 SWIG = swig
-SED_I = sed -i
+SED_I = sed -E -i
 PKG_CONFIG = pkg-config
 
 include platform_host.mk
@@ -45,12 +45,7 @@ SWIG_FLAGS = -go -c++ -D__GNUC__\
 	-intgosize $(SWIG_INT_GO_SIZE) \
 	$(CROSS_CFLAGS) \
 	$(LIBTORRENT_CFLAGS) \
-	$(CC_DEFINES)
-
-ifeq ($(CROSS_ROOT),)
-	SWIG_FLAGS += -I/usr/local/include
-endif
-
+	$(CC_DEFINES) $(CC_INCLUDES)
 
 ifeq ($(TARGET_OS), windows)
 	EXT = dll
@@ -64,7 +59,7 @@ else ifeq ($(TARGET_OS), android)
 	CFLAGS += -fPIC -ggdb -fstack-protector-all
 	LDFLAGS += -Wl,-Bstatic $(LIBTORRENT_LDFLAGS) -lm -Wl,-Bdynamic -lstdc++
 else ifeq ($(TARGET_OS), darwin)
-	SWIG_FLAGS += -DSWIGMAC
+	SWIG_FLAGS += -DSWIGMAC -DBOOST_HAS_PTHREADS
 	CFLAGS += -fPIC -mmacosx-version-min=10.6
 	LDFLAGS += $(LIBTORRENT_LDFLAGS) -lm -lssl -lcrypto -lstdc++
 endif
@@ -83,20 +78,25 @@ else
 	endif
 endif
 
+# It should always be like this, according to https://code.google.com/p/go/source/browse/src/cmd/cgo/out.go#530
+# Temp fix for https://code.google.com/p/go/issues/detail?id=6541
+# See also https://code.google.com/p/go/issues/detail?id=5603
+ATTRIBUTE_PACKED = __attribute__((__packed__))
+ifneq ($(findstring gcc, $(CC)),)
+ifneq (,$(filter $(TARGET_ARCH),x86 x64))
+	ATTRIBUTE_PACKED = __attribute__((__packed__, __gcc_struct__))
+endif
+endif
 
 SWIG_FILES = libtorrent.i
 SRCS = $(SWIG_FILES:%.i=%_wrap.cxx)
 GOFILES = $(SWIG_FILES:%.i=%_gc.c) $(SWIG_FILES:%.i=%.go)
 OBJS = $(SRCS:%.cxx=%.o)
 
-
 BUILD_PATH = build/$(TARGET_OS)_$(TARGET_ARCH)
 LIBRARY_NAME = $(NAME).$(EXT)
 
 all: dist
-
-test:
-	@echo $(CC_DEFINES)
 
 re: clean all
 
@@ -106,15 +106,7 @@ $(BUILD_PATH):
 $(SRCS) $(GOFILES): $(SWIG_FILES)
 	$(SWIG) $(SWIG_FLAGS) -o $@ -outdir . $<
 # It should always be like this, according to https://code.google.com/p/go/source/browse/src/cmd/cgo/out.go#530
-	$(SED_I) 's/} \*swig_a/} __attribute__((__packed__)) \*swig_a/g' $@
-	$(SED_I) 's/} a/} __attribute__((__packed__)) a/g' $@
-# Temp fix for https://code.google.com/p/go/issues/detail?id=6541
-# See also https://code.google.com/p/go/issues/detail?id=5603
-ifneq ($(findstring gcc, $(CC)),)
-ifneq (,$(filter $(TARGET_ARCH),x86 x64))
-	$(SED_I) 's/__attribute__((__packed__))/__attribute__((__packed__, __gcc_struct__))/g' $@
-endif
-endif
+	$(SED_I) 's/} (\*swig_a|a)/} $(ATTRIBUTE_PACKED) \1/g' $@
 
 dist_linux dist_android dist_darwin: swig_static $(OBJS)
 
@@ -142,9 +134,6 @@ shared_library: swig_shared $(OBJS) $(BUILD_PATH)
 	$(CXX) -o $(BUILD_PATH)/$(LIBRARY_NAME) $(CFLAGS) $(OBJS) $(LDFLAGS)
 
 swig_static: $(SRCS) $(GOFILES)
-# Convert imports to static imports
-	$(SED_I) 's/#pragma dynimport _ _ ".*"//g' libtorrent_gc.c
-	$(SED_I) 's/#pragma dynimport \(.*\) .* ""/#pragma cgo_import_static \1/g' libtorrent_gc.c
 # Ensure the ldflags are properly set for static compilation
 	echo "#pragma cgo_ldflag \"$(shell pwd)/libtorrent_wrap.o\"" > libtorrent_gc.cgo
 	for flag in $(CFLAGS) $(LDFLAGS); do\
