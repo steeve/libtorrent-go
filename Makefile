@@ -35,13 +35,12 @@ endif
 LIBTORRENT_CFLAGS = $(shell $(PKG_CONFIG) --cflags libtorrent-rasterbar)
 LIBTORRENT_LDFLAGS = $(shell $(PKG_CONFIG) --static --libs libtorrent-rasterbar)
 
-CC_DEFINES = $(shell echo | $(CC) -dM -E - | grep -v "__GNUC__\|__STDC__" | sed -E "s/\#define[[:space:]]+([a-zA-Z0-9_()]+)[[:space:]]+(.*)/-D'\1'='\2'/g" | tr '\n' ' ')
+CC_DEFINES = $(shell echo | $(CC) -dM -E - | grep -v "__STDC__" | sed -E "s/\#define[[:space:]]+([a-zA-Z0-9_()]+)[[:space:]]+(.*)/-D'\1'='\2'/g" | tr '\n' ' ')
 CC_INCLUDES = $(shell $(CC) -x c++ -v -E /dev/null 2>&1 | sed -n "/search starts here/,/End of search list./p" | grep -e "^ .*" | sed -E "s/[[:space:]]+(.*)/-I'\1'/g" | tr '\n' ' ')
 CFLAGS = -O2 -Wno-deprecated -Wno-deprecated-declarations $(CROSS_CFLAGS) $(CC_INCLUDES) $(LIBTORRENT_CFLAGS)
 LDFLAGS = $(CROSS_LDFLAGS)
 
-SWIG_FLAGS = -go -c++ -D__GNUC__\
-	-soname dummy \
+SWIG_FLAGS = -go -c++\
 	-intgosize $(SWIG_INT_GO_SIZE) \
 	$(CROSS_CFLAGS) \
 	$(LIBTORRENT_CFLAGS) \
