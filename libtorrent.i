@@ -17,7 +17,6 @@
 
 namespace std {
     typedef int time_t;
-    %template(pair_int_int) std::pair<int, int>;
 }
 
 namespace boost {
