@@ -33,6 +33,7 @@ namespace libtorrent
 %ignore libtorrent::throw_invalid_handle;
 %ignore libtorrent::session::add_extension;
 %ignore libtorrent::web_seed_entry;
+%ignore libtorrent::boosttime_nodeprecate_;
 
 %include <boost/preprocessor/cat.hpp>
 %include <boost/version.hpp>
