@@ -1,5 +1,5 @@
 NAME = libtorrent-go
-CC = cc
+CC = gcc
 CXX = c++
 SWIG = swig
 SED_I = sed -E -i
