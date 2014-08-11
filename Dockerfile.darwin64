@@ -22,7 +22,7 @@ RUN cd /build/openssl-1.0.1h && \
 
 # Install libtorrent
 RUN cd /build && \
-    curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorrent-rasterbar-1.0.0-RC3.tar.gz/download | tar xvz
+    curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorrent-rasterbar-1.0.0.tar.gz/download | tar xvz
 RUN cd /build/libtorrent-rasterbar-1.0.0 && \
     CC=${CROSS_TRIPLE}-cc CXX=${CROSS_TRIPLE}-c++ \
     ./configure --enable-static --disable-shared --disable-deprecated-functions \
@@ -33,7 +33,7 @@ RUN cd /build/libtorrent-rasterbar-1.0.0 && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a
 
 # Install SWIG
-RUN apt-get install -y libpcre3-dev
+RUN apt-get update && apt-get install -y libpcre3-dev
 RUN cd /build && \
     curl -L http://sourceforge.net/projects/swig/files/swig/swig-3.0.2/swig-3.0.2.tar.gz/download | tar xvz
 RUN cd /build/swig-3.0.2 && \
