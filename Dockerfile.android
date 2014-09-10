@@ -44,7 +44,7 @@ RUN cd /build/swig-3.0.2 && \
 
 # Install Golang
 RUN cd /usr/local && \
-    curl -L http://golang.org/dl/go1.3.src.tar.gz | tar xvz
+    curl -L http://golang.org/dl/go1.3.1.src.tar.gz | tar xvz
 RUN cd /usr/local/go/src && \
     GOOS=linux GOARCH=arm GOARM=7 ./make.bash
 ENV PATH ${PATH}:/usr/local/go/bin
