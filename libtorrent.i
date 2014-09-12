@@ -43,6 +43,7 @@ namespace libtorrent
 %include <boost/asio/error.hpp>
 
 %include <libtorrent/config.hpp>
+%include <libtorrent/export.hpp>
 %include <libtorrent/version.hpp>
 %include <libtorrent/build_config.hpp>
 %include <libtorrent/size_type.hpp>
