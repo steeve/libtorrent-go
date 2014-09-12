@@ -1,34 +1,41 @@
-FROM steeve/cross-osx
+FROM steeve/cross-compiler:darwin-x64
 MAINTAINER Steeve Morin "steeve.morin@gmail.com"
 
 RUN mkdir -p /build
 
 # Install Boost.System
 RUN cd /build && \
-    curl -L http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2/download | tar xvj
-RUN cd /build/boost_1_55_0 && \
+    curl -L http://sourceforge.net/projects/boost/files/boost/1.56.0/boost_1_56_0.tar.bz2/download | tar xvj
+RUN cd /build/boost_1_56_0 && \
     ./bootstrap.sh --prefix=${CROSS_ROOT} && \
-    echo "using clang : darwin : ${CROSS_TRIPLE}-c++ ;" > tools/build/v2/user-config.jam && \
+    echo "using clang : darwin : ${CROSS_TRIPLE}-c++ ;" > ${HOME}/user-config.jam && \
     ./b2 --with-date_time --with-system --prefix=${CROSS_ROOT} toolset=clang-darwin link=static variant=release threading=multi target-os=darwin install && \
-    ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a
+    ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
+    rm -rf ${HOME}/user-config.jam
 
 # Install OpenSSL
 RUN cd /build && \
-    curl -L http://www.openssl.org/source/openssl-1.0.1h.tar.gz | tar xvz
-RUN cd /build/openssl-1.0.1h && \
+    curl -L http://www.openssl.org/source/openssl-1.0.1i.tar.gz | tar xvz
+RUN cd /build/openssl-1.0.1i && \
     CROSS_COMPILE=${CROSS_TRIPLE}- ./Configure threads no-shared darwin64-x86_64-cc --prefix=${CROSS_ROOT} && \
     make && make install && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a
 
 # Install libtorrent
 RUN cd /build && \
-    curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorrent-rasterbar-1.0.0.tar.gz/download | tar xvz
-RUN cd /build/libtorrent-rasterbar-1.0.0 && \
+    curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorrent-rasterbar-1.0.2.tar.gz/download | tar xvz
+RUN cd /build/libtorrent-rasterbar-1.0.2/ && \
+    sed -i 's/$PKG_CONFIG openssl --libs-only-/$PKG_CONFIG openssl --static --libs-only-/' ./configure && \
+    sed -i -e s/Windows.h/windows.h/ -e s/Wincrypt.h/wincrypt.h/ ./ed25519/src/seed.cpp
+RUN cd /build/libtorrent-rasterbar-1.0.2 && \
+    PKG_CONFIG_PATH=${CROSS_ROOT}/lib/pkgconfig/ \
     CC=${CROSS_TRIPLE}-cc CXX=${CROSS_TRIPLE}-c++ \
+    CFLAGS="${CFLAGS} -O2" \
+    CXXFLAGS="${CXXFLAGS} ${CFLAGS}" \
     ./configure --enable-static --disable-shared --disable-deprecated-functions \
     --host=${CROSS_TRIPLE} --prefix=${CROSS_ROOT} \
     --with-boost=${CROSS_ROOT} --with-boost-libdir=${CROSS_ROOT}/lib
-RUN cd /build/libtorrent-rasterbar-1.0.0 && \
+RUN cd /build/libtorrent-rasterbar-1.0.2 && \
     make -j2 && make install && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a
 
