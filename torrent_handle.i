@@ -24,9 +24,7 @@
 // Once we delete the object, it will also delete the refcounter.
 %extend libtorrent::torrent_handle {
     const libtorrent::torrent_info* torrent_file() {
-        boost::intrusive_ptr<const libtorrent::torrent_info> tf = self->torrent_file();
-        intrusive_ptr_add_ref(tf.get());
-        return tf.get();
+        return self->torrent_file().detach();
     }
 }
 %ignore libtorrent::torrent_handle::torrent_file;
