@@ -10,7 +10,6 @@
 
 #ifdef SWIGWIN
     %include <windows.i>
-    %include "dllmain.i"
 #endif
 
 #define BOOST_POSIX_API
