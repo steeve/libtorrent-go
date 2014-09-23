@@ -1,3 +1,7 @@
+#ifdef _WIN32
+// Note that the previous declarations of crosscall2/_cgo_allocate/_cgo_panic
+// should be commented out. See Makefile.
+#include <winsock2.h>
 #include <windows.h>
 #include <assert.h>
 
@@ -38,3 +42,4 @@ DllMain (HANDLE hDll, DWORD dwReason, LPVOID lpReserved)
     }
     return TRUE;
 }
+#endif
