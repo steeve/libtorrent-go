@@ -26,4 +26,5 @@ namespace libtorrent
 }
 %ignore libtorrent::session::pop_alert;
 
+%include "extensions.i"
 %include <libtorrent/session.hpp>
