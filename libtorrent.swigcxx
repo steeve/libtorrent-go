@@ -4,6 +4,8 @@
 #include <libtorrent/session.hpp>
 %}
 
+%include "compiler_defines.i"
+
 %include <stl.i>
 %include <stdint.i>
 %include <typemaps.i>
@@ -29,6 +31,7 @@ namespace libtorrent
 }
 
 // These are problematic, ignore them for now
+%ignore libtorrent::absolutetime_nodeprecate_;
 %ignore libtorrent::throw_invalid_handle;
 %ignore libtorrent::session::add_extension;
 %ignore libtorrent::web_seed_entry;
@@ -51,7 +54,7 @@ namespace libtorrent
 %include <libtorrent/error.hpp>
 
 %include <libtorrent/fingerprint.hpp>
-%include <libtorrent/bitfield.hpp>
+%include "bitfield.i"
 %include "socket.i"
 %include <libtorrent/address.hpp>
 %include "torrent_info.i"
@@ -64,3 +67,4 @@ namespace libtorrent
 %include <libtorrent/ptime.hpp>
 %include <libtorrent/time.hpp>
 %include "session.i"
+%include "create_torrent.i"
