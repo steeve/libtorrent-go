@@ -65,5 +65,8 @@ RUN cd /usr/local && \
     GOOS=darwin GOARCH=amd64 ./make.bash
 ENV PATH ${PATH}:/usr/local/go/bin
 
+# Build CGO
+RUN CC=${CROSS_TRIPLE}-cc GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go install -v runtime/cgo
+
 WORKDIR /
 RUN rm -rf /build
