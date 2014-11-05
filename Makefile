@@ -53,7 +53,10 @@ DEFINE_IGNORES = __STDC__|_cdecl|__cdecl|_fastcall|__fastcall|_stdcall|__stdcall
 
 all: install
 
-compiler_defines.i:
+force:
+	true
+
+compiler_defines.i: force
 	@PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKG_CONFIG) --cflags libtorrent-rasterbar | sed -E -e 's/-D+/\n#define /g' -e 's/-I[^ ]+//g' -e 's/=/ /g' > $@
 	@echo | $(CC) -dM -E - | grep -v -E "$(DEFINE_IGNORES)" >> $@
 ifeq ($(TARGET_OS), windows)
