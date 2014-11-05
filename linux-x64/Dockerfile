@@ -11,7 +11,6 @@ RUN curl -L http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/b
     ./bootstrap.sh --prefix=${CROSS_ROOT} && \
     echo "using gcc : linux : ${CROSS_TRIPLE}-c++ ;" > ${HOME}/user-config.jam && \
     ./b2 --with-date_time --with-system --prefix=${CROSS_ROOT} toolset=gcc-linux link=static variant=release threading=multi target-os=linux install && \
-    ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
     rm -rf ${HOME}/user-config.jam && \
     rm -rf ../boost_`echo ${BOOST_VERSION} | sed 's/\\./_/g'`/
 
@@ -21,7 +20,6 @@ RUN curl -L http://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | ta
     cd openssl-${OPENSSL_VERSION}/ && \
     CROSS_COMPILE=${CROSS_TRIPLE}- ./Configure threads no-shared linux-x86_64 --prefix=${CROSS_ROOT} && \
     make && make install && \
-    ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
     rm -rf ../openssl-${OPENSSL_VERSION}/
 
 # Install libtorrent
@@ -40,7 +38,6 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     --with-boost=${CROSS_ROOT} --with-boost-libdir=${CROSS_ROOT}/lib && \
     \
     make && make install && \
-    ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
     rm -rf ../libtorrent-rasterbar-${LIBTORRENT_VERSION}/
 
 # Install SWIG
