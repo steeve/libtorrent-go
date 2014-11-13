@@ -58,11 +58,8 @@ ENV GO_VERSION 1.4beta1
 RUN cd /usr/local && \
     curl -L http://golang.org/dl/go${GO_VERSION}.src.tar.gz | tar xvz && \
     cd /usr/local/go/src && \
-    GOOS=android GOARCH=arm GOARM=7 ./make.bash
+    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=android GOARCH=arm GOARM=7 CGO_ENABLED=1 ./make.bash
 ENV PATH ${PATH}:/usr/local/go/bin
-
-# Build CGO
-RUN CC=${CROSS_TRIPLE}-cc GOOS=android GOARCH=arm GOARM=7 CGO_ENABLED=1 go install -v runtime/cgo
 
 WORKDIR /
 RUN rm -rf /build
