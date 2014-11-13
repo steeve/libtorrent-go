@@ -22,7 +22,12 @@ RUN curl -L http://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | ta
     make && make install && \
     rm -rf ../openssl-${OPENSSL_VERSION}/
 
+# Somehow this is needed or libtorrent complains about boost
+RUN ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a
+
 # Install libtorrent
+# Changes:
+# - define WIN32, _UNICODE, IPV6_TCLASS=39
 ENV LIBTORRENT_VERSION 1.0.2
 RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorrent-rasterbar-${LIBTORRENT_VERSION}.tar.gz/download | tar xvz && \
     cd libtorrent-rasterbar-${LIBTORRENT_VERSION}/ && \
@@ -31,7 +36,7 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     \
     PKG_CONFIG_PATH=${CROSS_ROOT}/lib/pkgconfig/ \
     CC=${CROSS_TRIPLE}-cc CXX=${CROSS_TRIPLE}-c++ \
-    CFLAGS="${CFLAGS} -O2 -DUNICODE -D_UNICODE -DWIN32" \
+    CFLAGS="${CFLAGS} -O2 -DUNICODE -D_UNICODE -DWIN32 -DIPV6_TCLASS=39" \
     CXXFLAGS="${CXXFLAGS} ${CFLAGS}" \
     ./configure --enable-static --disable-shared --disable-deprecated-functions \
     --host=${CROSS_TRIPLE} --prefix=${CROSS_ROOT} \
