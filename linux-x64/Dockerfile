@@ -48,8 +48,7 @@ RUN curl -L https://github.com/swig/swig/archive/master.tar.gz | tar xvz && \
     cd swig-master/ && \
     curl -L https://github.com/swig/swig/commit/255c929c5636f54c16261bd92b8eea2005d61b11.diff | patch -Rp1 && \
     curl -L https://github.com/steeve/swig/commit/c9b687108ec3550103db6525b4860ba21a485ecd.diff | patch -p1 && \
-    curl -L https://github.com/steeve/swig/commit/e70fce1c1cf928564f009ea512c6c3acb97ace16.diff | patch -p1 && \
-    curl -L https://github.com/steeve/swig/commit/3ff0a187e8ed4bc406c17835db8a2bdb22bb0203.diff | patch -p1 && \
+    curl -L https://github.com/steeve/swig/compare/swig:master...packed-structs.diff | patch -p1 && \
     ./autogen.sh && \
     ./configure && make && make install && \
     rm -rf ../swig-master/
