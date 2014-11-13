@@ -48,38 +48,57 @@ ifneq ($(CROSS_ROOT),)
 	PKG_CONFIG_PATH = $(CROSS_ROOT)/lib/pkgconfig
 endif
 
-LIBTORRENT_CFLAGS = $(shell $(PKG_CONFIG) --cflags libtorrent-rasterbar)
-DEFINE_IGNORES = __STDC__|_cdecl|__cdecl|_fastcall|__fastcall|_stdcall|__stdcall|__declspec|__LDBL_MAX__
+LIBTORRENT_CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKG_CONFIG) --cflags libtorrent-rasterbar)
+LIBTORRENT_LDFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKG_CONFIG) --static --libs libtorrent-rasterbar)
+DEFINE_IGNORES = __STDC__|_cdecl|__cdecl|_fastcall|__fastcall|_stdcall|__stdcall|__declspec
+CC_DEFINES = $(shell echo | $(CC) -dM -E - | grep -v -E "$(DEFINE_IGNORES)" | sed -E "s/\#define[[:space:]]+([a-zA-Z0-9_()]+)[[:space:]]+(.*)/-D\1="\2"/g" | tr '\n' ' ')
+
+ifeq ($(TARGET_OS), windows)
+	CC_DEFINES += -DSWIGWIN
+	CC_DEFINES += -D_WIN32_WINNT=0x0501
+else ifeq ($(TARGET_OS), darwin)
+	CC_DEFINES += -DSWIGMAC
+	CC_DEFINES += -DBOOST_HAS_PTHREADS
+endif
+
+
+OUT_PATH = $(shell go env GOPATH)/pkg/$(GOOS)_$(GOARCH)
+OUT_LIBRARY = $(OUT_PATH)/$(GO_PACKAGE).a
+ifeq ($(TARGET_OS), windows)
+OUT_LIBRARY_SHARED = $(OUT_PATH)/$(GO_PACKAGE).dll
+SONAME = $(shell basename $(OUT_LIBRARY_SHARED))
+endif
 
 all: install
 
-force:
-	true
-
-compiler_defines.i: force
-	@PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKG_CONFIG) --cflags libtorrent-rasterbar | sed -E -e 's/-D+/\n#define /g' -e 's/-I[^ ]+//g' -e 's/=/ /g' > $@
-	@echo | $(CC) -dM -E - | grep -v -E "$(DEFINE_IGNORES)" >> $@
 ifeq ($(TARGET_OS), windows)
-	@echo "#define _WIN32_WINNT 0x0501" >> $@
-	@echo "#define SWIGWIN" >> $@
-ifeq ($(TARGET_ARCH), x64)
-	@echo "#define SWIGWORDSIZE32" >> $@
-endif
-else ifeq ($(TARGET_OS), darwin)
-	@echo "#define SWIGMAC" >> $@
-	@echo "#define BOOST_HAS_PTHREADS" >> $@
+install: install_all fix_windows
+else
+install: install_all
 endif
 
-install: compiler_defines.i
+install_all:
+	SWIG_FLAGS='$(CC_DEFINES) $(LIBTORRENT_CFLAGS)' \
+	SONAME=$(SONAME) \
 	CC=$(CC) CXX=$(CXX) \
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) \
 	CGO_ENABLED=1 \
 	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) \
-	go install -v
+	PATH=.:$$PATH \
+	go install -v -x
+
+fix_windows:
+	mv $(OUT_LIBRARY) $(OUT_LIBRARY).raw
+	cd `mktemp -d` && \
+		pwd && \
+		ar x $(OUT_LIBRARY).raw && \
+		go tool pack r $(OUT_LIBRARY) `ar t $(OUT_LIBRARY).raw | grep -v _wrap` && \
+		$(CXX) -shared -static-libgcc -static-libstdc++ -o $(OUT_LIBRARY_SHARED) *_wrap $(LIBTORRENT_LDFLAGS) && \
+		rm -rf `pwd`
+	rm -rf $(OUT_LIBRARY).raw
 
 clean:
-	rm -rf compiler_defines.i
-	rm -rf $(shell go env GOPATH)/pkg/$(GOOS)_$(GOARCH)/$(GO_PACKAGE).a
+	rm -rf $(OUT_LIBRARY) $(OUT_LIBRARY_SHARED)
 
 re: clean all
 
