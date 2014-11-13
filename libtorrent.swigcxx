@@ -4,8 +4,6 @@
 #include <libtorrent/session.hpp>
 %}
 
-%include "compiler_defines.i"
-
 %include <stl.i>
 %include <stdint.i>
 %include <typemaps.i>
