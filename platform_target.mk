@@ -1,4 +1,4 @@
-GCC_TARGET = $(shell $(CC) -dumpmachine)
+GCC_TARGET = $(CC)
 
 ifneq ($(findstring darwin, $(GCC_TARGET)),)
     TARGET_OS = darwin
