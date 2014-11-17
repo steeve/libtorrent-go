@@ -109,3 +109,8 @@ build-envs:
 	for i in $(PLATFORMS); do \
 		$(DOCKER) build -t $(DOCKER_IMAGE):$$i $$i ; \
 	done
+
+alldist:
+	for i in $(PLATFORMS); do \
+		$(DOCKER) run -i --rm -v $(HOME):$(HOME) -t -e GOPATH=$(shell go env GOPATH) -w $(shell pwd) $(DOCKER_IMAGE):$$i make re; \
+	done
