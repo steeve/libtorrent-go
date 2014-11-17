@@ -60,7 +60,7 @@ RUN curl -L https://github.com/swig/swig/archive/master.tar.gz | tar xvz && \
     rm -rf ../swig-master/
 
 # Install Golang
-ENV GO_VERSION 1.4beta1
+ENV GO_VERSION 1.4rc1
 RUN cd /usr/local && \
     curl -L http://golang.org/dl/go${GO_VERSION}.src.tar.gz | tar xvz && \
     cd /usr/local/go/src && \
