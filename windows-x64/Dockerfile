@@ -43,7 +43,7 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     --with-boost=${CROSS_ROOT} --with-boost-libdir=${CROSS_ROOT}/lib && \
     \
     make && make install && \
-    rm -rf ../libtorrent-rasterbar-${LIBTORRENT_VERSION}/
+    rm -rf `pwd`
 
 # Install SWIG
 # Need to build from >3.0.2 because Go 1.4beta1
@@ -57,7 +57,7 @@ RUN curl -L https://github.com/swig/swig/archive/master.tar.gz | tar xvz && \
     curl -L https://github.com/steeve/swig/compare/swig:master...fix-windows.diff | patch -p1 && \
     ./autogen.sh && \
     ./configure && make && make install && \
-    rm -rf ../swig-master/
+    rm -rf `pwd`
 
 # Install Golang
 ENV GO_VERSION 1.4rc1

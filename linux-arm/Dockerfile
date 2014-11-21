@@ -12,7 +12,7 @@ RUN curl -L http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/b
     echo "using gcc : linux : ${CROSS_TRIPLE}-c++ ;" > ${HOME}/user-config.jam && \
     ./b2 --with-date_time --with-system --prefix=${CROSS_ROOT} toolset=gcc-linux link=static variant=release threading=multi target-os=linux install && \
     rm -rf ${HOME}/user-config.jam && \
-    rm -rf ../boost_`echo ${BOOST_VERSION} | sed 's/\\./_/g'`/
+    rm -rf `pwd`
 
 # Install OpenSSL
 ENV OPENSSL_VERSION 1.0.1j
@@ -20,7 +20,7 @@ RUN curl -L http://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | ta
     cd openssl-${OPENSSL_VERSION}/ && \
     CROSS_COMPILE=${CROSS_TRIPLE}- ./Configure threads no-shared linux-armv4 --prefix=${CROSS_ROOT} && \
     make && make install && \
-    rm -rf ../openssl-${OPENSSL_VERSION}/
+    rm -rf `pwd`
 
 # Install libtorrent
 ENV LIBTORRENT_VERSION 1.0.2
@@ -38,7 +38,7 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     --with-boost=${CROSS_ROOT} --with-boost-libdir=${CROSS_ROOT}/lib && \
     \
     make && make install && \
-    rm -rf ../libtorrent-rasterbar-${LIBTORRENT_VERSION}/
+    rm -rf `pwd`
 
 # Install SWIG
 # Need to build from >3.0.2 because Go 1.4beta1
@@ -51,7 +51,7 @@ RUN curl -L https://github.com/swig/swig/archive/master.tar.gz | tar xvz && \
     curl -L https://github.com/steeve/swig/compare/swig:master...packed-structs.diff | patch -p1 && \
     ./autogen.sh && \
     ./configure && make && make install && \
-    rm -rf ../swig-master/
+    rm -rf `pwd`
 
 # Install Golang
 ENV GO_VERSION 1.4rc1

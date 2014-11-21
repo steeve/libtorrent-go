@@ -13,7 +13,7 @@ RUN curl -L http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/b
     ./b2 --with-date_time --with-system --prefix=${CROSS_ROOT} toolset=clang-darwin link=static variant=release threading=multi target-os=darwin install && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
     rm -rf ${HOME}/user-config.jam && \
-    rm -rf ../boost_`echo ${BOOST_VERSION} | sed 's/\\./_/g'`/
+    rm -rf `pwd`
 
 # Install OpenSSL
 ENV OPENSSL_VERSION 1.0.1j
@@ -41,7 +41,7 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     \
     make && make install && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
-    rm -rf ../libtorrent-rasterbar-${LIBTORRENT_VERSION}/
+    rm -rf `pwd`
 
 # Install SWIG
 # Need to build from >3.0.2 because Go 1.4beta1
@@ -54,7 +54,7 @@ RUN curl -L https://github.com/swig/swig/archive/master.tar.gz | tar xvz && \
     curl -L https://github.com/steeve/swig/compare/swig:master...packed-structs.diff | patch -p1 && \
     ./autogen.sh && \
     ./configure && make && make install && \
-    rm -rf ../swig-master/
+    rm -rf `pwd`
 
 # Install Golang
 ENV GO_VERSION 1.4rc1
