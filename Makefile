@@ -38,7 +38,7 @@ else ifeq ($(TARGET_OS), darwin)
 else ifeq ($(TARGET_OS), linux)
 	GOOS = linux
 else ifeq ($(TARGET_OS), android)
-	GOOS = linux
+	GOOS = android
 	GOARM = 7
 endif
 
