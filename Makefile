@@ -80,6 +80,8 @@ else
 install: install_all
 endif
 
+.PHONY: dockerbuild
+
 install_all:
 	SWIG_FLAGS='$(CC_DEFINES) $(LIBTORRENT_CFLAGS)' \
 	SONAME=$(SONAME) \
