@@ -66,3 +66,5 @@ namespace libtorrent
 %include <libtorrent/time.hpp>
 %include "session.i"
 %include "create_torrent.i"
+%include "ed25519.i"
+%include "dht.i"
