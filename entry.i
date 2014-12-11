@@ -6,10 +6,23 @@
 %include <libtorrent/entry.hpp>
 %include <libtorrent/lazy_entry.hpp>
 
-%extend libtorrent::entry {
-    std::string bencode() {
+namespace libtorrent {
+    std::string bencode(const entry& e);
+    error_code lazy_bdecode(std::string data, lazy_entry& ret);
+}
+
+%{
+namespace libtorrent {
+    std::string bencode(const entry& e) {
         std::ostringstream oss;
-        libtorrent::bencode(std::ostream_iterator<char>(oss), *self);
+        bencode(std::ostream_iterator<char>(oss), e);
         return oss.str();
     }
+
+    error_code lazy_bdecode(std::string data, lazy_entry& ret) {
+        error_code ec;
+        lazy_bdecode((const char*)data.c_str(), (const char*)(data.c_str() + data.size()), ret, ec);
+        return ec;
+    }
 }
+%}
