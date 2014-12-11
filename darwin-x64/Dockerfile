@@ -22,7 +22,7 @@ RUN curl -L http://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | ta
     CROSS_COMPILE=${CROSS_TRIPLE}- ./Configure threads no-shared darwin64-x86_64-cc --prefix=${CROSS_ROOT} && \
     make && make install && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \
-    rm -rf ../openssl-${OPENSSL_VERSION}/
+    rm -rf `pwd`
 
 # Install libtorrent
 ENV LIBTORRENT_VERSION 1.0.3
