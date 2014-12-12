@@ -44,7 +44,7 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
 # Need to build from >3.0.2 because Go 1.4
 # Also, revert https://github.com/swig/swig/commit/255c929c5636f54c16261bd92b8eea2005d61b11 as it breaks boost
 ENV SWIG_VERSION 01faf1baf92f3dc9c6c26b61c3e6db4f9d4e7784
-RUN apt-get update && apt-get install -y libpcre3-dev bison yodl
+RUN apt-get update && apt-get install -y automake libpcre3-dev bison yodl
 RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xvz && \
     cd swig-${SWIG_VERSION}/ && \
     curl -L https://github.com/swig/swig/commit/255c929c5636f54c16261bd92b8eea2005d61b11.diff | patch -Rp1 && \
