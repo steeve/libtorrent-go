@@ -51,7 +51,7 @@ ENV SWIG_VERSION 5c57a8c877f88c9388b68067d665c63546244ba0
 RUN apt-get update && apt-get install -y automake libpcre3-dev bison yodl
 RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xvz && \
     cd swig-${SWIG_VERSION}/ && \
-    curl -L https://github.com/steeve/swig/compare/swig:${SWIG_VERSION}...packed-structs.diff | patch -p1 && \
+    curl -L https://github.com/steeve/swig/compare/swig:${SWIG_VERSION}...packed-struct-libtorrent.diff | patch -p1 && \
     curl -L https://github.com/steeve/swig/compare/swig:${SWIG_VERSION}...fix-windows.diff | patch -p1 && \
     ./autogen.sh && \
     ./configure && make && make install && \
