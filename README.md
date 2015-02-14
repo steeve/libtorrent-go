@@ -1,192 +1,38 @@
 libtorrent-go
 =============
 
-SWIG Go bindings for libtorrent-rasterbar
+SWIG Go bindings for [libtorrent-rasterbar](http://www.libtorrent.org/)
 
 
-Windows
-=======
-```
-export CROSSHOST=i586-mingw32
-export CROSSHOME=/usr/local/gcc-4.8.0-mingw32
-export PATH=$CROSSHOME/bin:$PATH
-export PKG_CONFIG_LIBDIR=$CROSSHOME/lib/pkgconfig
-export PKG_CONFIG_PATH=$PKG_CONFIG_LIBDIR
-export CFLAGS="-I$CROSSHOME/include -D_WIN32_WINNT=0x0501"
-export CPPFLAGS=$CFLAGS
-```
+#### Supported platforms
+- Android (ARM)
+- Linux (x64/x86/ARM)
+- Mac OSX (x64)
+- Windows (x64/x86)
 
-Boost
-*****
-```
-./bootstrap.sh
-echo "using gcc : mingw32 : $CROSSHOST-g++ ;" >! tools/build/v2/user-config.jam
-./b2 -j2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-mingw32 link=static variant=release threading=multi target-os=windows threadapi=win32 install
-```
+## Building instructions
+libtorrent-go uses [Docker](https://github.com/docker/docker) to simplify cross-compilation. On your development machine it requires:
 
-OpenSSL
-*******
-```
-CROSS_COMPILE=$CROSSHOST- ./configure threads no-shared mingw --prefix=$CROSSHOME
-make clean && make && make install
-```
+- A working [Docker](https://github.com/docker/docker) setup (boot2docker is fine)
+- A working [Go](https://github.com/golang/go) setup (GOPATH properly configured)
+- Make
 
-libtorrent
-**********
+##### Build all supported platforms
 ```
-sed -i 's/$PKG_CONFIG openssl --libs-only-l/$PKG_CONFIG openssl --static --libs-only-l/' ./configure
-make clean
-./configure --host=$CROSSHOST --prefix=$CROSSHOME --with-boost=$CROSSHOME --with-boost-libdir=$CROSSHOME/lib --enable-static --disable-shared
-make -j2 && make install
+git clone https://github.com/steeve/libtorrent-go
+cd libtorrent-go
+make
 ```
+##### Build specific platform (ex: Linux/x64)
+```
+git clone https://github.com/steeve/libtorrent-go
+cd libtorrent-go
+make PLATFORMS=linux-x64
+```
+## Usage instructions
+The simplest way to use libtorrent-go in your app is to build your code using the Docker images used when compiling the library. An example will soon be published.
 
+When building for Windows, make sure you distribute libtorrent-go.dll along your executable. This is a current limitation when using native libraries on Windows. This will probably be fixed later.
 
-
-
-Linux x86
-=========
-```
-export CROSSHOST=i586-pc-linux
-export CROSSHOME=/usr/local/gcc-4.8.1-for-linux32/
-export PATH=$CROSSHOME/bin:$PATH
-export PKG_CONFIG_LIBDIR=$CROSSHOME/lib/pkgconfig
-export PKG_CONFIG_PATH=$PKG_CONFIG_LIBDIR
-unset CFLAGS
-unset CPPFLAGS
-```
-
-Boost
-*****
-```
-./bootstrap.sh
-echo "using gcc : linux32 : $CROSSHOST-g++ ;" >! tools/build/v2/user-config.jam
-./b2 -j2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-linux32 link=static variant=release threading=multi target-os=linux install
-```
-
-OpenSSL
-*******
-```
-CROSS_COMPILE=$CROSSHOST- ./configure threads no-shared linux-elf --prefix=$CROSSHOME
-make clean && make && make install
-```
-
-libtorrent
-**********
-```
-sed -i 's/$PKG_CONFIG openssl --libs-only-l/$PKG_CONFIG openssl --static --libs-only-l/' ./configure
-make clean
-./configure --host=$CROSSHOST --prefix=$CROSSHOME --with-boost=$CROSSHOME --with-boost-libdir=$CROSSHOME/lib --enable-static --disable-shared
-make -j2 && make install
-```
-
-
-
-Linux x86_64
-============
-```
-export CROSSHOST=x86_64-pc-linux
-export CROSSHOME=/usr/local/gcc-4.8.0-linux64
-export PATH=$CROSSHOME/bin:$PATH
-export PKG_CONFIG_LIBDIR=$CROSSHOME/lib/pkgconfig
-export PKG_CONFIG_PATH=$PKG_CONFIG_LIBDIR
-unset CFLAGS
-unset CPPFLAGS
-```
-
-Boost
-*****
-```
-./bootstrap.sh
-echo "using gcc : linux64 : $CROSSHOST-g++ ;" >! tools/build/v2/user-config.jam
-./b2 -j2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-linux64 link=static variant=release threading=multi target-os=linux install
-```
-
-OpenSSL
-*******
-```
-CROSS_COMPILE=$CROSSHOST- ./configure threads no-shared linux-x86_64 --prefix=$CROSSHOME
-make clean && make && make install
-```
-
-libtorrent
-**********
-```
-sed -i 's/$PKG_CONFIG openssl --libs-only-l/$PKG_CONFIG openssl --static --libs-only-l/' ./configure
-make clean
-./configure --host=$CROSSHOST --prefix=$CROSSHOME --with-boost=$CROSSHOME --with-boost-libdir=$CROSSHOME/lib --enable-static --disable-shared
-make -j2 && make install
-```
-
-Linux ARM
-=========
-```
-export CROSSHOST=arm-linux-gnueabihf
-export CROSSHOME=/usr/local/gcc-linaro-arm-linux-gnueabihf-raspbian
-export PATH=$CROSSHOME/bin:$PATH
-export PKG_CONFIG_LIBDIR=$CROSSHOME/lib/pkgconfig
-export PKG_CONFIG_PATH=$PKG_CONFIG_LIBDIR
-unset CFLAGS
-unset CPPFLAGS
-```
-
-Boost
-*****
-```
-./bootstrap.sh
-echo "using gcc : linuxarm : $CROSSHOST-g++ ;" > tools/build/v2/user-config.jam
-./b2 -j2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-linuxarm link=static variant=release threading=multi target-os=linux install
-```
-
-OpenSSL
-*******
-```
-make clean
-CROSS_COMPILE=$CROSSHOST- ./configure threads no-shared linux-elf no-asm --prefix=$CROSSHOME
-make && make install
-```
-
-libtorrent
-**********
-```
-sed -i 's/$PKG_CONFIG openssl --libs-only-l/$PKG_CONFIG openssl --static --libs-only-l/' ./configure
-make clean
-./configure --host=$CROSSHOST --prefix=$CROSSHOME --with-boost=$CROSSHOME --with-boost-libdir=$CROSSHOME/lib --enable-static --disable-shared
-make -j2 && make install
-```
-
-
-Android ARM
-===========
-```
-export CROSSHOST=x86_64-pc-linux
-export CROSSHOME=/usr/local/gcc-4.8.0-linux64
-export PATH=$CROSSHOME/bin:$PATH
-export PKG_CONFIG_LIBDIR=$CROSSHOME/lib/pkgconfig
-export PKG_CONFIG_PATH=$PKG_CONFIG_LIBDIR
-unset CFLAGS
-unset CPPFLAGS
-```
-
-Boost
-*****
-```
-./bootstrap.sh
-echo "using gcc : linux64 : $CROSSHOST-g++ ;" >! tools/build/v2/user-config.jam
-./b2 -j2 --with-date_time --with-system --prefix=$CROSSHOME toolset=gcc-linux64 link=static variant=release threading=multi target-os=linux install
-```
-
-OpenSSL
-*******
-```
-CROSS_COMPILE=$CROSSHOST- ./configure threads no-shared linux-x86_64 --prefix=$CROSSHOME
-make clean && make && make install
-```
-
-libtorrent
-**********
-```
-sed -i 's/$PKG_CONFIG openssl --libs-only-l/$PKG_CONFIG openssl --static --libs-only-l/' ./configure
-make clean
-./configure --host=$CROSSHOST --prefix=$CROSSHOME --with-boost=$CROSSHOME --with-boost-libdir=$CROSSHOME/lib --enable-static --disable-shared
-make -j2 && make install
-```
+- Windows/x64: ```$GOPATH/pkg/windows_amd64/github.com/steeve/libtorrent-go.dll```
+- Windows/x86: ```$GOPATH/pkg/windows_386/github.com/steeve/libtorrent-go.dll```
