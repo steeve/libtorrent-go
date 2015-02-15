@@ -53,10 +53,12 @@ RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xv
 
 # Install Golang
 ENV GO_VERSION 1.4.1
+ENV CROSS_GOOS linux
+ENV CROSS_GOARCH 386
 RUN cd /usr/local && \
     curl -L http://golang.org/dl/go${GO_VERSION}.src.tar.gz | tar xvz && \
     cd /usr/local/go/src && \
-    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=linux GOARCH=386 CGO_ENABLED=1 ./make.bash
+    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=${CROSS_GOOS} GOARCH=${CROSS_GOARCH} CGO_ENABLED=1 ./make.bash
 ENV PATH ${PATH}:/usr/local/go/bin
 
 WORKDIR /

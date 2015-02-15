@@ -53,10 +53,13 @@ RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xv
 
 # Install Golang
 ENV GO_VERSION 1.4.1
+ENV CROSS_GOOS android
+ENV CROSS_GOARCH arm
+ENV CROSS_GOARM 7
 RUN cd /usr/local && \
     curl -L http://golang.org/dl/go${GO_VERSION}.src.tar.gz | tar xvz && \
     cd /usr/local/go/src && \
-    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=android GOARCH=arm GOARM=7 CGO_ENABLED=1 ./make.bash
+    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=${CROSS_GOOS} GOARCH=${CROSS_GOARCH} GOARM=${CROSS_GOARM} CGO_ENABLED=1 ./make.bash
 ENV PATH ${PATH}:/usr/local/go/bin
 
 WORKDIR /
