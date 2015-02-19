@@ -91,13 +91,12 @@ $(OUT_LIBRARY):
 	go install -v -x
 
 $(OUT_LIBRARY_SHARED): cc-clean $(OUT_LIBRARY)
-	cp $(OUT_LIBRARY) $(OUT_LIBRARY).raw
-	cd `mktemp -d`
-	pwd
-	ar x $(OUT_LIBRARY).raw
-	go tool pack r $(OUT_LIBRARY) `ar t $(OUT_LIBRARY).raw | grep -v _wrap`
-	$(CXX) -shared -static-libgcc -static-libstdc++ -o $(OUT_LIBRARY_SHARED) *_wrap $(LIBTORRENT_LDFLAGS)
-	rm -rf `pwd`
+	cp $(OUT_LIBRARY) $(OUT_LIBRARY).raw && \
+	cd `mktemp -d` && \
+	ar x $(OUT_LIBRARY).raw && \
+	go tool pack r $(OUT_LIBRARY) `ar t $(OUT_LIBRARY).raw | grep -v _wrap` && \
+	$(CXX) -shared -static-libgcc -static-libstdc++ -o $(OUT_LIBRARY_SHARED) *_wrap $(LIBTORRENT_LDFLAGS) && \
+	rm -rf `pwd` && \
 	rm -rf $(OUT_LIBRARY).raw
 
 cc-clean:
