@@ -44,7 +44,7 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     rm -rf `pwd`
 
 # Install SWIG
-# Need to build from >3.0.2 because Go 1.4.1
+# Need to build from >3.0.2 because Go 1.4.2
 ENV SWIG_VERSION 5c57a8c877f88c9388b68067d665c63546244ba0
 RUN apt-get update && apt-get install -y automake libpcre3-dev bison yodl
 RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xvz && \
@@ -55,11 +55,13 @@ RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xv
     rm -rf `pwd`
 
 # Install Golang
-ENV GO_VERSION 1.4.1
+ENV GO_VERSION 1.4.2
+ENV CROSS_GOOS darwin
+ENV CROSS_GOARCH amd64
 RUN cd /usr/local && \
     curl -L http://golang.org/dl/go${GO_VERSION}.src.tar.gz | tar xvz && \
     cd /usr/local/go/src && \
-    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 ./make.bash
+    CC_FOR_TARGET=${CROSS_TRIPLE}-cc CXX_FOR_TARGET=${CROSS_TRIPLE}-c++ GOOS=${CROSS_GOOS} GOARCH=${CROSS_GOARCH} CGO_ENABLED=1 ./make.bash
 ENV PATH ${PATH}:/usr/local/go/bin
 
 WORKDIR /
