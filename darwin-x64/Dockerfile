@@ -55,7 +55,7 @@ RUN curl -L https://github.com/swig/swig/archive/${SWIG_VERSION}.tar.gz | tar xv
     rm -rf `pwd`
 
 # Install Golang
-ENV GO_VERSION 1.4.1
+ENV GO_VERSION 1.4.2
 RUN cd /usr/local && \
     curl -L http://golang.org/dl/go${GO_VERSION}.src.tar.gz | tar xvz && \
     cd /usr/local/go/src && \
