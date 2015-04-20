@@ -64,7 +64,7 @@ namespace libtorrent
 %include "alert_types.i"
 %include <libtorrent/ptime.hpp>
 %include <libtorrent/time.hpp>
-%include "session.i"
 %include "create_torrent.i"
-%include "ed25519.i"
 %include "dht.i"
+%include "session.i"
+%include "ed25519.i"
