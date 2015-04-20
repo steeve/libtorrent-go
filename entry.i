@@ -21,7 +21,7 @@ namespace libtorrent {
 
     error_code lazy_bdecode(std::string data, lazy_entry& ret) {
         error_code ec;
-        lazy_bdecode((const char*)data.c_str(), (const char*)(data.c_str() + data.size()), ret, ec);
+        lazy_bdecode((const char*)data.data(), (const char*)(data.data() + data.size()), ret, ec);
         return ec;
     }
 }
