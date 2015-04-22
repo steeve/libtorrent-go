@@ -6,7 +6,7 @@
 
 %include <stl.i>
 %include <stdint.i>
-%include <typemaps.i>
+%include "byte_slices.i"
 
 #ifdef SWIGWIN
     %include <windows.i>
@@ -42,6 +42,8 @@ namespace libtorrent
 %include <boost/system/error_code.hpp>
 %include <boost/asio/detail/config.hpp>
 %include <boost/asio/error.hpp>
+
+%include "boost_array.i"
 
 %include <libtorrent/config.hpp>
 %include <libtorrent/export.hpp>

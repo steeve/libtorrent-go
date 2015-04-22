@@ -2,6 +2,7 @@
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/ed25519.hpp>
 #include <boost/bind.hpp>
+#include <stdio.h>
 %}
 
 %{
@@ -13,12 +14,25 @@ namespace libtorrent {
         boost::array<char, 64>  private_key;
         std::string             salt;
 
-        dht_put_operation(std::string public_key, std::string private_key) {
+        dht_put_operation(unsigned char* public_key, unsigned char* private_key) {
             for (int i = 0; i < 32; i++) {
                 this->public_key[i] = public_key[i];
             }
             for (int i = 0; i < 64; i++) {
                 this->private_key[i] = private_key[i];
+            }
+        }
+    };
+
+    class dht_get_operation {
+    public:
+        entry                   *data;
+        boost::array<char, 32>  public_key;
+        std::string             salt;
+
+        dht_get_operation(unsigned char* public_key) {
+            for (int i = 0; i < 32; i++) {
+                this->public_key[i] = public_key[i];
             }
         }
     };
@@ -50,21 +64,26 @@ namespace libtorrent {
         boost::array<char, 64>  private_key;
         std::string             salt;
 
-        dht_put_operation(std::string public_key, std::string private_key);
+        dht_put_operation(unsigned char* public_key, unsigned char* private_key);
+    };
+
+    class dht_get_operation {
+    public:
+        entry                   *data;
+        boost::array<char, 32>  public_key;
+        std::string             salt;
+
+        dht_get_operation(unsigned char* public_key);
     };
 }
 
 %extend libtorrent::session {
-    void dht_get_item(std::string public_key, std::string salt = std::string()) {
-        boost::array<char, 32> key;
-        for (int i = 0; i < 32; i++) {
-            key[i] = public_key[i];
-        }
-        $self->dht_get_item(key, salt);
-    }
-
     libtorrent::sha1_hash dht_put_item(entry& item) {
         return $self->dht_put_item(item);
+    }
+
+    void dht_get_item(libtorrent::dht_get_operation& op) {
+        $self->dht_get_item(op.public_key, op.salt);
     }
 
     void dht_put_mutable_item(libtorrent::dht_put_operation& op) {
