@@ -12,9 +12,9 @@
 
 %typemap(out) boost::array
 %{
-    $result->array = (void*)$1.data();
-    $result->len = (intgo)$1.size();
-    $result->cap = $result.len;
+    $result.array = (void*)$1.data();
+    $result.len = (intgo)$1.size();
+    $result.cap = $result.len;
 %}
 
 %typemap(out) boost::array*

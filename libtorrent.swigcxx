@@ -6,13 +6,14 @@
 
 %include <stl.i>
 %include <stdint.i>
-%include "byte_slices.i"
+%include <typemaps.i>
 
 #ifdef SWIGWIN
     %include <windows.i>
 #endif
 
 #define BOOST_POSIX_API
+#define TORRENT_NO_DEPRECATE
 
 namespace std {
     typedef int time_t;
@@ -34,6 +35,18 @@ namespace libtorrent
 %ignore libtorrent::session::add_extension;
 %ignore libtorrent::web_seed_entry;
 %ignore libtorrent::boosttime_nodeprecate_;
+
+%ignore libtorrent::time_now_string;
+%ignore libtorrent::merkle_num_leafs;
+%ignore libtorrent::merkle_num_nodes;
+%ignore libtorrent::merkle_get_parent;
+%ignore libtorrent::trim_path_element;
+%ignore libtorrent::merkle_get_sibling;
+%ignore libtorrent::detail::get_symlink_path;
+%ignore libtorrent::detail::get_file_attributes;
+%ignore libtorrent::log_time;
+%ignore libtorrent::parse_int;
+
 
 %include <boost/preprocessor/cat.hpp>
 %include <boost/version.hpp>
@@ -61,12 +74,13 @@ namespace libtorrent
 %include <libtorrent/session_settings.hpp>
 %include "torrent_handle.i"
 %include <libtorrent/session_status.hpp>
-%include <libtorrent/add_torrent_params.hpp>
+%include "add_torrent_params.i"
 %include "alert.i"
 %include "alert_types.i"
 %include <libtorrent/ptime.hpp>
 %include <libtorrent/time.hpp>
 %include "create_torrent.i"
 %include "dht.i"
+%include "upnp.i"
 %include "session.i"
 %include "ed25519.i"

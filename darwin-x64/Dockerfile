@@ -34,10 +34,14 @@ RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorre
     OSXCROSS_PKG_CONFIG_PATH=${CROSS_ROOT}/lib/pkgconfig/ \
     CC=${CROSS_TRIPLE}-cc CXX=${CROSS_TRIPLE}-c++ \
     CFLAGS="${CFLAGS} -O2" \
-    CXXFLAGS="${CXXFLAGS} ${CFLAGS}" \
-    ./configure --enable-static --disable-shared --disable-deprecated-functions \
-    --host=${CROSS_TRIPLE} --prefix=${CROSS_ROOT} \
-    --with-boost=${CROSS_ROOT} --with-boost-libdir=${CROSS_ROOT}/lib && \
+    CXXFLAGS="${CXXFLAGS} ${CFLAGS} -O2" \
+    ./configure \
+        --enable-static \
+        --disable-shared \
+        --disable-deprecated-functions \
+        --host=${CROSS_TRIPLE} \
+        --prefix=${CROSS_ROOT} \
+        --with-boost=${CROSS_ROOT} --with-boost-libdir=${CROSS_ROOT}/lib && \
     \
     make && make install && \
     ${CROSS_TRIPLE}-ranlib ${CROSS_ROOT}/lib/*.a && \

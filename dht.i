@@ -64,7 +64,7 @@ namespace libtorrent {
         boost::array<char, 64>  private_key;
         std::string             salt;
 
-        dht_put_operation(unsigned char* public_key, unsigned char* private_key);
+        dht_put_operation(unsigned char* INOUT, unsigned char* INOUT);
     };
 
     class dht_get_operation {
@@ -73,7 +73,7 @@ namespace libtorrent {
         boost::array<char, 32>  public_key;
         std::string             salt;
 
-        dht_get_operation(unsigned char* public_key);
+        dht_get_operation(unsigned char* INOUT);
     };
 }
 

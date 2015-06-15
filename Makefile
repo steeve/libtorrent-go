@@ -114,5 +114,5 @@ build-envs:
 
 alldist:
 	for i in $(PLATFORMS); do \
-		$(DOCKER) run -i --rm -v $(HOME):$(HOME) -t -e GOPATH=$(shell go env GOPATH) -w $(shell pwd) $(DOCKER_IMAGE):$$i make re; \
+		$(DOCKER) run --rm -v $(HOME):$(HOME) -e GOPATH=$(shell go env GOPATH) -w $(shell pwd) $(DOCKER_IMAGE):$$i make re; \
 	done
