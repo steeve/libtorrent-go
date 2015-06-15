@@ -5,7 +5,7 @@ RUN mkdir -p /build
 WORKDIR /build
 
 # Install Boost.System
-ENV BOOST_VERSION 1.57.0
+ENV BOOST_VERSION 1.58.0
 RUN curl -L http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/boost_`echo ${BOOST_VERSION} | sed 's/\\./_/g'`.tar.bz2/download | tar xvj && \
     cd boost_`echo ${BOOST_VERSION} | sed 's/\\./_/g'`/ && \
     ./bootstrap.sh --prefix=${CROSS_ROOT} && \
@@ -15,7 +15,7 @@ RUN curl -L http://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/b
     rm -rf `pwd`
 
 # Install OpenSSL
-ENV OPENSSL_VERSION 1.0.2a
+ENV OPENSSL_VERSION 1.0.2c
 RUN curl -L http://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | tar xvz && \
     cd openssl-${OPENSSL_VERSION}/ && \
     CROSS_COMPILE=${CROSS_TRIPLE}- ./Configure threads no-shared linux-elf --prefix=${CROSS_ROOT} && \
@@ -23,7 +23,7 @@ RUN curl -L http://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | ta
     rm -rf `pwd`
 
 # Install libtorrent
-ENV LIBTORRENT_VERSION 1.0.4
+ENV LIBTORRENT_VERSION 1.0.5
 RUN curl -L http://sourceforge.net/projects/libtorrent/files/libtorrent/libtorrent-rasterbar-${LIBTORRENT_VERSION}.tar.gz/download | tar xvz && \
     cd libtorrent-rasterbar-${LIBTORRENT_VERSION}/ && \
     sed -i 's/$PKG_CONFIG openssl --libs-only-/$PKG_CONFIG openssl --static --libs-only-/' ./configure && \
